@@ -80,7 +80,7 @@ export default function DashboardPage() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-yellow-700">
-                Your agent account is currently <strong>unverified</strong>. You can browse bundles, but some agent features may be restricted until an admin approves your account.
+                Your agent account is currently <strong>unverified</strong>. You can browse bundles, but some agent features may be restricted until an admin approves your account, Contact Admin from the chat icon bellow.
               </p>
             </div>
           </div>

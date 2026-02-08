@@ -94,7 +94,7 @@ export default function AuthPage() {
 
           <div className="grid grid-cols-2 gap-6">
             <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10">
-              <h3 className="font-bold text-xl mb-1">Instant Delivery</h3>
+              <h3 className="font-bold text-xl mb-1">Fast Delivery</h3>
               <p className="text-sm text-white/60">Automated systems ensure you get your data in seconds.</p>
             </div>
             <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10">
