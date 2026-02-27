@@ -14,6 +14,9 @@ export default function FundWalletPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
+  const adminFee = amount * 0.04; // 4% fee
+  const netAmount = amount - adminFee;
+
   if (isLoading) return <div className="h-[50vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   if (!user) return null;
 
@@ -48,6 +51,24 @@ export default function FundWalletPage() {
           <Input type="number" placeholder="Amount (GHS)" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
           <Button onClick={fundWallet}>Pay</Button>
         </div>
+        
+        {amount > 0 && (
+          <div className="mt-6 space-y-2 p-4 bg-gray-50 rounded-lg">
+            <div className="flex justify-between text-sm">
+              <span>Amount to Pay:</span>
+              <span className="font-medium">GHS {amount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-red-600">
+              <span>Admin Fee (4%):</span>
+              <span className="font-medium">GHS {adminFee.toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+              <span>Amount Credited to Wallet:</span>
+              <span className="text-green-600">GHS {netAmount.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+        
         <div className="mt-4">
           <Button variant="ghost" onClick={() => setLocation('/profile')}>Back to Profile</Button>
         </div>
