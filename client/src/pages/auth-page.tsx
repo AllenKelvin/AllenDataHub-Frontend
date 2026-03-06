@@ -263,6 +263,8 @@ function ForgotPasswordTab({ setActiveTab }: { setActiveTab: (tab: string) => vo
     </>
   );
 }
+
+export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
   const { mutate: login, isPending: isLoginPending } = useLogin();
   const { mutate: register, isPending: isRegisterPending } = useRegister();
