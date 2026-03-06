@@ -4,8 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { z } from "zod";
-import { Loader2, ShieldCheck, User, Users } from "lucide-react";
+import { Loader2, ShieldCheck, User, Users, Eye, EyeOff } from "lucide-react";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -45,11 +46,229 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function AuthPage() {
+// Forgot Password Schema
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Valid email address is required"),
+});
+
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+// Forgot Password Tab Component
+function ForgotPasswordTab({ setActiveTab }: { setActiveTab: (tab: string) => void }) {
+  const [step, setStep] = useState<"request" | "reset" | "sent">("request");
+  const [email, setEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const forgotForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
+
+  async function onForgotPassword(values: ForgotPasswordFormValues) {
+    setIsLoading(true);
+    try {
+      const res = await fetch("https://allen-data-hub-backend.onrender.com/api/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: values.email }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to send reset email");
+      }
+
+      setEmail(values.email);
+      setStep("sent");
+      toast({ title: "Email sent", description: "Check your email for the reset token." });
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to process request", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function onResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetToken || !newPassword) {
+      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("https://allen-data-hub-backend.onrender.com/api/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, token: resetToken, newPassword }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to reset password");
+      }
+
+      toast({ title: "Success", description: "Password reset successfully! You can now log in." });
+      setStep("request");
+      forgotForm.reset();
+      setResetToken("");
+      setNewPassword("");
+      setTimeout(() => setActiveTab("login"), 1500);
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to reset password", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <>
+      {step === "request" ? (
+        <Form {...forgotForm}>
+          <form onSubmit={forgotForm.handleSubmit(onForgotPassword)} className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-900">Enter your email address and we'll send you a reset token to recover your password.</p>
+            </div>
+            <FormField
+              control={forgotForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input placeholder="you@example.com" type="email" className="h-12" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button 
+              type="submit" 
+              className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Reset Email"
+              )}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline"
+              className="w-full h-12"
+              onClick={() => setActiveTab("login")}
+            >
+              Back to Login
+            </Button>
+          </form>
+        </Form>
+      ) : step === "sent" ? (
+        <div className="space-y-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-900 font-medium mb-2">✓ Email sent successfully!</p>
+            <p className="text-sm text-green-800">We've sent a password reset token to <strong>{email}</strong></p>
+          </div>
+          
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-900">
+              <strong>💡 Tip:</strong> If you don't see the email, please check your <strong>Spam</strong> or <strong>Junk</strong> folder. The email may take a few moments to arrive.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-700">Enter the token and create a new password:</p>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium">Reset Token</label>
+                <Input 
+                  placeholder="Paste the token from your email" 
+                  className="h-12 mt-1"
+                  value={resetToken}
+                  onChange={(e) => setResetToken(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">New Password</label>
+                <div className="relative mt-1">
+                  <Input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Enter new password" 
+                    className="h-12 pr-10"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Button 
+            type="button"
+            onClick={onResetPassword}
+            className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Resetting...
+              </>
+            ) : (
+              "Reset Password"
+            )}
+          </Button>
+
+          <Button 
+            type="button" 
+            variant="outline"
+            className="w-full h-12"
+            onClick={() => {
+              setStep("request");
+              setResetToken("");
+              setNewPassword("");
+              forgotForm.reset();
+            }}
+          >
+            Start Over
+          </Button>
+        </div>
+      ) : null}
+    </>
+  );
+}
   const [activeTab, setActiveTab] = useState("login");
   const { mutate: login, isPending: isLoginPending } = useLogin();
   const { mutate: register, isPending: isRegisterPending } = useRegister();
   const [, setLocation] = useLocation();
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   // Login Form
   const loginForm = useForm<LoginFormValues>({
@@ -114,9 +333,10 @@ export default function AuthPage() {
           </div>
 
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 h-12">
+            <TabsList className="grid w-full grid-cols-3 mb-8 h-12">
               <TabsTrigger value="login" className="text-base">Login</TabsTrigger>
               <TabsTrigger value="register" className="text-base">Create Account</TabsTrigger>
+              <TabsTrigger value="forgot" className="text-base">Forgot Password</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="animate-in fade-in slide-in-from-left-4 duration-300">
@@ -144,12 +364,39 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" className="h-12" {...field} />
+                              <div className="relative">
+                                <Input 
+                                  type={showLoginPassword ? "text" : "password"} 
+                                  placeholder="••••••••" 
+                                  className="h-12 pr-10" 
+                                  {...field} 
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {showLoginPassword ? (
+                                    <EyeOff className="w-5 h-5" />
+                                  ) : (
+                                    <Eye className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("forgot")}
+                          className="text-sm text-primary hover:underline font-medium"
+                        >
+                          Forgot Password?
+                        </button>
+                      </div>
                       <Button 
                         type="submit" 
                         className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
@@ -252,7 +499,25 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="Create a password" className="h-12" {...field} />
+                              <div className="relative">
+                                <Input 
+                                  type={showRegisterPassword ? "text" : "password"} 
+                                  placeholder="Create a password" 
+                                  className="h-12 pr-10" 
+                                  {...field} 
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {showRegisterPassword ? (
+                                    <EyeOff className="w-5 h-5" />
+                                  ) : (
+                                    <Eye className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -274,6 +539,14 @@ export default function AuthPage() {
                       </Button>
                     </form>
                   </Form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="forgot" className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <Card className="border-none shadow-none">
+                <CardContent className="p-0">
+                  <ForgotPasswordTab setActiveTab={setActiveTab} />
                 </CardContent>
               </Card>
             </TabsContent>
