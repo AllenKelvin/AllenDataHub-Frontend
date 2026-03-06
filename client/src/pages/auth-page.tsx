@@ -335,10 +335,10 @@ export default function AuthPage() {
           </div>
 
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8 h-12">
-              <TabsTrigger value="login" className="text-base">Login</TabsTrigger>
-              <TabsTrigger value="register" className="text-base">Create Account</TabsTrigger>
-              <TabsTrigger value="forgot" className="text-base">Forgot Password</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 mb-8 h-10 gap-1">
+              <TabsTrigger value="login" className="text-xs sm:text-sm">Login</TabsTrigger>
+              <TabsTrigger value="register" className="text-xs sm:text-sm">Sign Up</TabsTrigger>
+              <TabsTrigger value="forgot" className="text-xs sm:text-sm">Reset</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="animate-in fade-in slide-in-from-left-4 duration-300">
