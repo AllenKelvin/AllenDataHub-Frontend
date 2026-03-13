@@ -67,6 +67,30 @@ export default function CartPage() {
               <div className="font-bold">GHS {Number(total).toFixed(2)}</div>
             </div>
 
+            {user?.role === 'agent' && user?.balance !== undefined && (
+              <div className="border-t pt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">Current Balance</div>
+                  <div className="text-sm font-semibold">GHS {Number(user.balance).toFixed(2)}</div>
+                </div>
+                {paymentMethod === 'wallet' && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">Balance After Purchase</div>
+                      <div className={`text-sm font-semibold ${user.balance - total < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        GHS {Number(Math.max(0, user.balance - total)).toFixed(2)}
+                      </div>
+                    </div>
+                    {user.balance - total < 0 && (
+                      <div className="bg-red-50 border border-red-200 rounded p-2 text-red-700 text-sm">
+                        Insufficient balance. You need GHS {Number(total - user.balance).toFixed(2)} more.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
                 {user?.role === 'agent' && (
@@ -119,6 +143,12 @@ export default function CartPage() {
                       return;
                     }
 
+                    // Check wallet balance for agent wallet payment
+                    if (user?.role === 'agent' && paymentMethod === 'wallet' && (user?.balance ?? 0) < total) {
+                      toast({ title: 'Insufficient Balance', description: `You need GHS ${(total - (user?.balance ?? 0)).toFixed(2)} more to complete this purchase.`, variant: 'destructive' });
+                      return;
+                    }
+
                     // Sync local items to server silently before checkout
                     if (localItems.length > 0) {
                       setIsSyncing(true);
@@ -145,7 +175,7 @@ export default function CartPage() {
 
                     checkout.mutate({ paymentMethod });
                   }}
-                  disabled={isSyncing || checkout.isLoading || merged.length === 0}
+                  disabled={isSyncing || checkout.isLoading || merged.length === 0 || (user?.role === 'agent' && paymentMethod === 'wallet' && (user?.balance ?? 0) < total)}
                 >
                   {isSyncing || checkout.isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : (user?.role === 'agent' ? `Pay with ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'}` : 'Pay with Paystack')}
                 </Button>

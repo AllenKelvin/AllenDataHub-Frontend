@@ -6,6 +6,7 @@ import { insertProductSchema, type InsertProduct } from "@shared/schema";
 import { Loader2, ShieldAlert, CheckCircle2, PackagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { OrderStatusBadge } from "@/components/order-status-badge";
 import {
   Form,
   FormControl,
@@ -60,18 +61,79 @@ function WalletManager() {
 
       <div>
         <button
-          className="bg-primary text-white px-4 py-2 rounded"
+          className="bg-primary text-white px-4 py-2 rounded flex items-center gap-2 disabled:opacity-50"
           disabled={!agentId || amount <= 0 || isPending}
           onClick={() => agentId && credit({ id: agentId, amount })}
         >
-          Credit Wallet
+          {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+          {isPending ? 'Crediting...' : 'Credit Wallet'}
         </button>
       </div>
     </div>
   );
 }
 
-function ManagePackagesTable() {
+function AgentBalancesTable() {
+  const { data: agents, isLoading } = useAgents();
+  
+  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+  
+  const totalBalance = (agents ?? []).reduce((sum: number, a: any) => sum + (a.balance ?? 0), 0);
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Agent Account Balances</CardTitle>
+        <CardDescription>View all agent wallets and their current balances.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-3 px-2 font-semibold">Agent Name</th>
+                <th className="text-left py-3 px-2 font-semibold">Email</th>
+                <th className="text-left py-3 px-2 font-semibold">Balance (GHS)</th>
+                <th className="text-left py-3 px-2 font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(agents ?? []).map((a: any) => (
+                <tr key={a._id || a.id} className="border-b last:border-0">
+                  <td className="py-3 px-2 font-medium">{a.username ?? '-'}</td>
+                  <td className="py-3 px-2">{a.email ?? '-'}</td>
+                  <td className="py-3 px-2">
+                    <span className={`font-semibold ${(a.balance ?? 0) > 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                      GHS {Number(a.balance ?? 0).toFixed(2)}
+                    </span>
+                  </td>
+                  <td className="py-3 px-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      a.verified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                    }`}>
+                      {a.verified ? 'Verified' : 'Pending'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {(!agents || agents.length === 0) && (
+            <p className="text-center py-6 text-muted-foreground">No agents yet.</p>
+          )}
+          {agents && agents.length > 0 && (
+            <div className="mt-4 pt-4 border-t font-bold flex justify-between">
+              <span>Total Agent Balances</span>
+              <span className="text-green-600">GHS {totalBalance.toFixed(2)}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
   const { data: products, isLoading } = useProducts();
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
   return (
@@ -159,7 +221,9 @@ function AdminAllOrdersTable() {
                       {o.paymentStatus ?? "pending"}
                     </span>
                   </td>
-                  <td className="py-3 px-2">{o.status ?? "-"}</td>
+                  <td className="py-3 px-2">
+                    <OrderStatusBadge status={o.status} size="sm" />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -276,8 +340,9 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="agents" className="w-full">
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-4 h-12 mb-8">
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-5 h-12 mb-8">
           <TabsTrigger value="agents">Agent Verification</TabsTrigger>
+          <TabsTrigger value="balances">Agent Balances</TabsTrigger>
           <TabsTrigger value="wallet">Wallet Manager</TabsTrigger>
           <TabsTrigger value="orders">All Orders</TabsTrigger>
           <TabsTrigger value="products">Manage Packages</TabsTrigger>
@@ -327,6 +392,11 @@ export default function AdminPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* AGENT BALANCES TAB */}
+        <TabsContent value="balances" className="animate-in fade-in slide-in-from-left-4">
+          <AgentBalancesTable />
         </TabsContent>
 
         <TabsContent value="wallet" className="animate-in fade-in slide-in-from-bottom-4">

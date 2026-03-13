@@ -11,6 +11,7 @@ const BACKEND_URL = "https://allen-data-hub-backend.onrender.com";
 export default function FundWalletPage() {
   const { data: user, isLoading } = useUser();
   const [amount, setAmount] = useState<number>(0);
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -22,6 +23,7 @@ export default function FundWalletPage() {
 
   async function fundWallet() {
     if (amount <= 0) return toast({ title: 'Invalid amount', variant: 'destructive' });
+    setIsPaymentLoading(true);
     try {
       const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
       const resp = await fetchWithAuth('/api/paystack/initialize', {
@@ -34,9 +36,11 @@ export default function FundWalletPage() {
         toast({ title: 'Redirecting', description: 'Redirecting to Paystack...', variant: 'default' });
         setTimeout(() => { window.location.href = url; }, 200);
       } else {
+        setIsPaymentLoading(false);
         toast({ title: 'Payment init failed', description: 'Could not initialize Paystack', variant: 'destructive' });
       }
     } catch (e) {
+      setIsPaymentLoading(false);
       console.error(e);
       toast({ title: 'Error', description: 'Failed to initialize payment', variant: 'destructive' });
     }
@@ -48,8 +52,11 @@ export default function FundWalletPage() {
         <h2 className="text-xl font-bold">Fund Wallet</h2>
         <p className="text-sm text-muted-foreground mt-2">Top up your agent wallet using Paystack.</p>
         <div className="mt-4 flex gap-2 items-center">
-          <Input type="number" placeholder="Amount (GHS)" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
-          <Button onClick={fundWallet}>Pay</Button>
+          <Input type="number" placeholder="Amount (GHS)" value={amount} onChange={(e) => setAmount(Number(e.target.value))} disabled={isPaymentLoading} />
+          <Button onClick={fundWallet} disabled={isPaymentLoading || amount <= 0}>
+            {isPaymentLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {isPaymentLoading ? 'Processing...' : 'Pay'}
+          </Button>
         </div>
         
         {amount > 0 && (

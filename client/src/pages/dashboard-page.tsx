@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Loader2, TrendingUp, Wallet, Wifi, CheckCircle2, Clock, Cog, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { OrderStatusBadge } from "@/components/order-status-badge";
 
 export default function DashboardPage() {
   const [ordersPage, setOrdersPage] = useState(1);
@@ -176,13 +177,7 @@ export default function DashboardPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          order.status === 'completed' || order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                          order.status === 'failed' ? 'bg-red-100 text-red-700' :
-                          order.status === 'processing' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {order.status ?? "pending"}
-                        </span>
+                        <OrderStatusBadge status={order.status} size="sm" />
                       </td>
                     </tr>
                   ))}
