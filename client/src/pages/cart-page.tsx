@@ -177,7 +177,8 @@ export default function CartPage() {
                   }}
                   disabled={isSyncing || checkout.isLoading || merged.length === 0 || (user?.role === 'agent' && paymentMethod === 'wallet' && (user?.balance ?? 0) < total)}
                 >
-                  {isSyncing || checkout.isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : (user?.role === 'agent' ? `Pay with ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'}` : 'Pay with Paystack')}
+                  {isSyncing || checkout.isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : null}
+                  {isSyncing ? 'Syncing Cart...' : checkout.isLoading ? (user?.role === 'agent' ? `Processing ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'} Payment...` : 'Processing Payment...') : (user?.role === 'agent' ? `Pay with ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'}` : 'Pay with Paystack')}
                 </Button>
               </div>
             </div>

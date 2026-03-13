@@ -18,6 +18,7 @@ export default function PaymentReturnPage() {
   const params = new URLSearchParams(search);
   const reference = params.get("reference");
   const success = params.get("trxref") || reference;
+  const isSuccess = !!success;
 
   useEffect(() => {
     qc.invalidateQueries({ queryKey: ["/api/cart"] });
@@ -51,8 +52,6 @@ export default function PaymentReturnPage() {
       getLastOrder();
     }
   }, [user, userLoading, isSuccess]);
-
-  const isSuccess = !!success;
 
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-6">
