@@ -133,7 +133,7 @@ function AgentBalancesTable() {
   );
 }
 
-function AdminProductTable() {
+function ManagePackagesTable() {
   const { data: products, isLoading } = useProducts();
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
   return (
