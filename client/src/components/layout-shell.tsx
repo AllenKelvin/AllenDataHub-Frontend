@@ -53,13 +53,9 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
-      {/* Mobile Header: menu left, cart top right near menu area */}
-      <div className="md:hidden bg-white border-b border-border p-4 flex justify-between items-center sticky top-0 z-50">
-        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Menu">
-          {isMobileMenuOpen ? <X /> : <Menu />}
-        </button>
+      {/* Mobile Header: project name only */}
+      <div className="md:hidden bg-white border-b border-border p-4 sticky top-0 z-50">
         <h1 className="text-xl font-bold font-display text-primary">AllenDataHub</h1>
-        {/* Cart icon removed from mobile header to avoid duplicate */}
       </div>
 
       {/* Sidebar Navigation */}
@@ -122,7 +118,16 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-x-hidden min-h-screen">
         <div className="w-full bg-white border-b border-border">
           <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 flex items-center justify-between gap-4">
-            {/* Left: Agent wallet only */}
+            {/* Left: Menu button (mobile only) */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+              aria-label="Menu"
+              className="md:hidden p-2 rounded-md hover:bg-gray-100"
+            >
+              {isMobileMenuOpen ? <X /> : <Menu />}
+            </button>
+
+            {/* Agent wallet only */}
             {user.role === 'agent' && (
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
                 <span className="text-xs font-medium text-muted-foreground">Wallet:</span>
@@ -131,7 +136,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
             )}
             {user.role !== 'agent' && <div className="flex-1" />}
 
-            {/* Top right: Cart + User menu (user and admin pages) */}
+            {/* Top right: Cart + User menu */}
             <div className="flex items-center gap-4 ml-auto">
               <Link href="/cart">
                 <button aria-label="Cart" className="relative p-2 rounded-md hover:bg-gray-100">
