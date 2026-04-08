@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [amount, setAmount] = useState<number>(0);
   const [email, setEmail] = useState<string>('');
   const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
@@ -53,6 +54,7 @@ export default function ProfilePage() {
   async function fundWallet() {
     if (!user) return;
     if (amount <= 0) return toast({ title: 'Invalid amount', variant: 'destructive' });
+    setIsPaymentLoading(true);
     try {
       const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
       const resp = await fetchWithAuth('/api/paystack/initialize', {
@@ -66,9 +68,11 @@ export default function ProfilePage() {
         // small delay to allow toast to show briefly
         setTimeout(() => { window.location.href = url; }, 200);
       } else {
+        setIsPaymentLoading(false);
         toast({ title: 'Payment init failed', description: 'Could not initialize Paystack', variant: 'destructive' });
       }
     } catch (e) {
+      setIsPaymentLoading(false);
       console.error(e);
       toast({ title: 'Error', description: 'Failed to initialize payment', variant: 'destructive' });
     }

@@ -3,13 +3,16 @@ import { useUser } from "@/hooks/use-auth";
 import { useMyOrders } from "../hooks/use-orders";
 import { useOrderPolling } from "../hooks/use-order-polling";
 import { format } from "date-fns";
-import { Loader2, TrendingUp, Wallet, Wifi, CheckCircle2, Clock, Cog, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, TrendingUp, Wallet, Wifi, CheckCircle2, Clock, Cog, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { OrderStatusBadge } from "@/components/order-status-badge";
+import { OrderComplaintDialog } from "@/components/order-complaint-dialog";
 
 export default function DashboardPage() {
   const [ordersPage, setOrdersPage] = useState(1);
+  const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const limit = 10;
   const { data: user, isLoading: isUserLoading } = useUser();
   const { data: ordersData, isLoading: isOrdersLoading } = useMyOrders(ordersPage, limit);
@@ -159,6 +162,7 @@ export default function DashboardPage() {
                     <th className="text-left py-3 px-4 font-semibold">Number Sent To</th>
                     <th className="text-left py-3 px-4 font-semibold">Payment Status</th>
                     <th className="text-left py-3 px-4 font-semibold">Order Status</th>
+                    <th className="text-left py-3 px-4 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,6 +182,18 @@ export default function DashboardPage() {
                       </td>
                       <td className="py-3 px-4">
                         <OrderStatusBadge status={order.status} size="sm" />
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            setComplaintDialogOpen(true);
+                          }}
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-muted transition-colors"
+                          title="Report issue"
+                        >
+                          <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -206,6 +222,15 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Complaint Dialog */}
+      {selectedOrder && (
+        <OrderComplaintDialog
+          open={complaintDialogOpen}
+          onOpenChange={setComplaintDialogOpen}
+          order={selectedOrder}
+        />
+      )}
     </div>
   );
 }
