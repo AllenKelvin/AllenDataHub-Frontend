@@ -157,11 +157,15 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="border-b bg-gray-50">
                     <th className="text-left py-3 px-4 font-semibold">Time/Date</th>
+                    {user.role === "agent" && (
+                      <th className="text-left py-3 px-4 font-semibold">Source</th>
+                    )}
                     <th className="text-left py-3 px-4 font-semibold">Network</th>
                     <th className="text-left py-3 px-4 font-semibold">GB</th>
                     <th className="text-left py-3 px-4 font-semibold">Number Sent To</th>
                     <th className="text-left py-3 px-4 font-semibold">Payment Status</th>
                     <th className="text-left py-3 px-4 font-semibold">Order Status</th>
+                    <th className="text-left py-3 px-4 font-semibold">Status updated</th>
                     <th className="text-left py-3 px-4 font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -169,6 +173,17 @@ export default function DashboardPage() {
                   {orders.map((order: any) => (
                     <tr key={order.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">{order.createdAt ? format(new Date(order.createdAt), "MMM d, yyyy h:mm a") : "-"}</td>
+                      {user.role === "agent" && (
+                        <td className="py-3 px-4">
+                          {order.orderSource === "api" ? (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-violet-100 text-violet-800">
+                              API
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Web</span>
+                          )}
+                        </td>
+                      )}
                       <td className="py-3 px-4">{order.productNetwork ?? "-"}</td>
                       <td className="py-3 px-4">{order.dataAmount ?? "-"}</td>
                       <td className="py-3 px-4">{order.phoneNumber ?? "-"}</td>
@@ -182,6 +197,15 @@ export default function DashboardPage() {
                       </td>
                       <td className="py-3 px-4">
                         <OrderStatusBadge status={order.status} size="sm" />
+                      </td>
+                      <td className="py-3 px-4 text-xs text-muted-foreground max-w-[200px]">
+                        {order.lastStatusUpdateAt ? (
+                          <span title={order.lastVendorWebhook?.vendorStatus ? `Vendor: ${order.lastVendorWebhook.vendorStatus}` : undefined}>
+                            {format(new Date(order.lastStatusUpdateAt), "MMM d, yyyy h:mm a")}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <button

@@ -97,3 +97,96 @@ export function useAdminAllOrders(page = 1, limit = 50) {
     },
   });
 }
+
+export type AdminApiAccessRow = {
+  userId: string;
+  username?: string;
+  email?: string;
+  status: string;
+  balance?: number;
+  requestedAt?: string;
+  lastUsedAt?: string;
+  productPrices: Record<string, number>;
+  products: { id: string; name: string; network: string; dataAmount: string; agentPrice: number }[];
+};
+
+export function useAdminApiAccess() {
+  return useQuery({
+    queryKey: ["/api/admin/api-access"],
+    queryFn: async () => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth("/api/admin/api-access");
+      if (!res.ok) throw new Error("Failed to fetch API access list");
+      return res.json() as Promise<AdminApiAccessRow[]>;
+    },
+  });
+}
+
+export function usePatchAgentApiPricing() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ userId, prices }: { userId: string; prices: Record<string, number> }) => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth(`/api/admin/api-access/${userId}/pricing`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prices }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || "Failed to save API prices");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/api-access"] });
+      toast({ title: "Saved", description: "API prices updated for this agent." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useIssueAgentApiKey() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth(`/api/admin/api-access/${userId}/issue-key`, { method: "POST" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { message?: string }).message || "Failed to issue key");
+      }
+      return res.json() as Promise<{ apiKey: string; message: string }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/api-access"] });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Issue key failed", description: e.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useRevokeAgentApiAccess() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth(`/api/admin/api-access/${userId}/revoke`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to revoke");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/api-access"] });
+      toast({ title: "Revoked", description: "API key disabled for this agent." });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Revoke failed", description: e.message, variant: "destructive" });
+    },
+  });
+}

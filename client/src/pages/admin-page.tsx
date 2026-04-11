@@ -3,7 +3,7 @@ import { useUnverifiedAgents, useVerifyAgent } from "@/hooks/use-admin";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertProductSchema, type InsertProduct } from "@shared/schema";
-import { Loader2, ShieldAlert, CheckCircle2, PackagePlus } from "lucide-react";
+import { Loader2, ShieldAlert, CheckCircle2, PackagePlus, KeyRound, Save, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -32,8 +32,26 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { z } from "zod";
 import { format } from "date-fns";
-import { useAgents, useCreditAgent, useAdminTotals, useAdminAllOrders } from "@/hooks/use-admin";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  useAgents,
+  useCreditAgent,
+  useAdminTotals,
+  useAdminAllOrders,
+  useAdminApiAccess,
+  usePatchAgentApiPricing,
+  useIssueAgentApiKey,
+  useRevokeAgentApiAccess,
+  type AdminApiAccessRow,
+} from "@/hooks/use-admin";
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function WalletManager() {
   const { data: agents } = useAgents();
@@ -200,8 +218,12 @@ function AdminAllOrdersTable() {
                 <th className="text-left py-3 px-2 font-semibold">GB</th>
                 <th className="text-left py-3 px-2 font-semibold">Number sent to</th>
                 <th className="text-left py-3 px-2 font-semibold">Amount (GHS)</th>
+                <th className="text-left py-3 px-2 font-semibold">Source</th>
+                <th className="text-left py-3 px-2 font-semibold">Bal. before</th>
+                <th className="text-left py-3 px-2 font-semibold">Bal. after</th>
                 <th className="text-left py-3 px-2 font-semibold">Payment</th>
                 <th className="text-left py-3 px-2 font-semibold">Status</th>
+                <th className="text-left py-3 px-2 font-semibold">Status updated</th>
               </tr>
             </thead>
             <tbody>
@@ -214,6 +236,19 @@ function AdminAllOrdersTable() {
                   <td className="py-3 px-2">{o.phoneNumber ?? "-"}</td>
                   <td className="py-3 px-2">{o.price != null ? Number(o.price).toFixed(2) : "-"}</td>
                   <td className="py-3 px-2">
+                    {o.orderSource === "api" ? (
+                      <span className="px-2 py-0.5 rounded text-xs bg-violet-100 text-violet-800 font-medium">API</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Web</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-2 text-xs">
+                    {typeof o.walletBalanceBefore === "number" ? `GHS ${Number(o.walletBalanceBefore).toFixed(2)}` : "—"}
+                  </td>
+                  <td className="py-3 px-2 text-xs">
+                    {typeof o.walletBalanceAfter === "number" ? `GHS ${Number(o.walletBalanceAfter).toFixed(2)}` : "—"}
+                  </td>
+                  <td className="py-3 px-2">
                     <span className={`px-2 py-0.5 rounded text-xs ${
                       o.paymentStatus === 'success' ? 'bg-green-100 text-green-700' :
                       o.paymentStatus === 'failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
@@ -223,6 +258,11 @@ function AdminAllOrdersTable() {
                   </td>
                   <td className="py-3 px-2">
                     <OrderStatusBadge status={o.status} size="sm" />
+                  </td>
+                  <td className="py-3 px-2 text-xs text-muted-foreground whitespace-nowrap">
+                    {o.lastStatusUpdateAt
+                      ? format(new Date(o.lastStatusUpdateAt), "MMM d, h:mm a")
+                      : "—"}
                   </td>
                 </tr>
               ))}
@@ -294,6 +334,221 @@ function TotalsPanel() {
   );
 }
 
+function AgentApiAccessPanel() {
+  const { data: rows, isLoading } = useAdminApiAccess();
+  const patchPricing = usePatchAgentApiPricing();
+  const issueKey = useIssueAgentApiKey();
+  const revoke = useRevokeAgentApiAccess();
+  const [issuedKey, setIssuedKey] = useState<string | null>(null);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!rows?.length) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Partner API access</CardTitle>
+          <CardDescription>
+            When a verified agent requests an API key from their profile, they appear here. Set per-package API prices,
+            then issue a key. External apps use{" "}
+            <code className="text-xs bg-muted px-1 rounded">X-API-Key</code> on{" "}
+            <code className="text-xs bg-muted px-1 rounded">GET /api/v1/products</code> and{" "}
+            <code className="text-xs bg-muted px-1 rounded">POST /api/v1/orders</code>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center py-8 text-muted-foreground">No API access requests yet.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Dialog open={!!issuedKey} onOpenChange={(o) => !o && setIssuedKey(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>API key issued</DialogTitle>
+            <DialogDescription>
+              Copy this key now. It will not be shown again. Share it only with the agent or their developer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md bg-muted p-3 font-mono text-sm break-all select-all">{issuedKey}</div>
+          <Button
+            type="button"
+            onClick={() => {
+              if (issuedKey) void navigator.clipboard.writeText(issuedKey);
+            }}
+          >
+            Copy to clipboard
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Partner API access</CardTitle>
+          <CardDescription>
+            Set API prices per package (GHS). Unset rows use the agent&apos;s dashboard price. Issue a key after pricing.
+            Orders via the API deduct the agent wallet and are labeled in All Orders.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-10">
+          {rows.map((row) => (
+            <AgentApiAccessRowCard
+              key={row.userId}
+              row={row}
+              onSave={(prices) => patchPricing.mutate({ userId: row.userId, prices })}
+              isSaving={patchPricing.isPending}
+              onIssue={() =>
+                issueKey.mutate(row.userId, {
+                  onSuccess: (d) => setIssuedKey(d.apiKey),
+                })
+              }
+              isIssuing={issueKey.isPending}
+              onRevoke={() => {
+                if (confirm(`Revoke API access for ${row.username ?? row.userId}?`)) revoke.mutate(row.userId);
+              }}
+              isRevoking={revoke.isPending}
+            />
+          ))}
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
+function AgentApiAccessRowCard({
+  row,
+  onSave,
+  isSaving,
+  onIssue,
+  isIssuing,
+  onRevoke,
+  isRevoking,
+}: {
+  row: AdminApiAccessRow;
+  onSave: (prices: Record<string, number>) => void;
+  isSaving: boolean;
+  onIssue: () => void;
+  isIssuing: boolean;
+  onRevoke: () => void;
+  isRevoking: boolean;
+}) {
+  const { toast } = useToast();
+  const [prices, setPrices] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const init: Record<string, string> = {};
+    (row.products ?? []).forEach((p) => {
+      const v = row.productPrices?.[p.id] ?? p.agentPrice;
+      init[p.id] = v != null && Number.isFinite(Number(v)) ? String(v) : "";
+    });
+    setPrices(init);
+  }, [row.userId, row.productPrices, row.products]);
+
+  const statusClass =
+    row.status === "active"
+      ? "bg-green-100 text-green-800"
+      : row.status === "pending"
+        ? "bg-amber-100 text-amber-800"
+        : "bg-red-100 text-red-800";
+
+  function handleSave() {
+    const out: Record<string, number> = {};
+    for (const p of row.products ?? []) {
+      const n = parseFloat(prices[p.id] ?? "");
+      if (Number.isFinite(n) && n > 0) out[p.id] = n;
+    }
+    if (Object.keys(out).length === 0) {
+      toast({
+        title: "No prices to save",
+        description: "Enter at least one positive API price (GHS) for a package.",
+        variant: "destructive",
+      });
+      return;
+    }
+    onSave(out);
+  }
+
+  return (
+    <div className="border rounded-xl p-4 space-y-4 bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-semibold">{row.username ?? row.userId}</p>
+          <p className="text-xs text-muted-foreground">{row.email ?? "—"}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`px-2 py-1 rounded text-xs font-medium ${statusClass}`}>{row.status}</span>
+          <span className="text-sm text-muted-foreground">
+            Wallet: GHS {Number(row.balance ?? 0).toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="text-left py-2 px-2">Package</th>
+              <th className="text-left py-2 px-2">Network</th>
+              <th className="text-left py-2 px-2">Agent price (ref.)</th>
+              <th className="text-left py-2 px-2">API price (GHS)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(row.products ?? []).map((p) => (
+              <tr key={p.id} className="border-b last:border-0">
+                <td className="py-2 px-2">{p.name}</td>
+                <td className="py-2 px-2">{p.network}</td>
+                <td className="py-2 px-2 text-muted-foreground">{Number(p.agentPrice ?? 0).toFixed(2)}</td>
+                <td className="py-2 px-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="h-8 w-28"
+                    value={prices[p.id] ?? ""}
+                    onChange={(e) => setPrices((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                    placeholder={String(p.agentPrice ?? "")}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="secondary" onClick={handleSave} disabled={isSaving}>
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+          Save API prices
+        </Button>
+        <Button type="button" size="sm" onClick={onIssue} disabled={isIssuing || row.status === "revoked"}>
+          {isIssuing ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4 mr-1" />}
+          {row.status === "active" ? "Regenerate API key" : "Issue API key"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          onClick={onRevoke}
+          disabled={isRevoking || row.status !== "active"}
+        >
+          {isRevoking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4 mr-1" />}
+          Revoke
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { data: unverifiedAgents, isLoading: isLoadingAgents } = useUnverifiedAgents();
   const { mutate: verifyAgent, isPending: isVerifying } = useVerifyAgent();
@@ -340,10 +595,11 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="agents" className="w-full">
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-5 h-12 mb-8">
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto gap-1 mb-8 p-1">
           <TabsTrigger value="agents">Agent Verification</TabsTrigger>
           <TabsTrigger value="balances">Agent Balances</TabsTrigger>
           <TabsTrigger value="wallet">Wallet Manager</TabsTrigger>
+          <TabsTrigger value="api">API access</TabsTrigger>
           <TabsTrigger value="orders">All Orders</TabsTrigger>
           <TabsTrigger value="products">Manage Packages</TabsTrigger>
         </TabsList>
@@ -412,6 +668,10 @@ export default function AdminPage() {
           <div className="mt-6">
             <TotalsPanel />
           </div>
+        </TabsContent>
+
+        <TabsContent value="api" className="animate-in fade-in slide-in-from-bottom-4">
+          <AgentApiAccessPanel />
         </TabsContent>
 
         {/* ALL ORDERS TAB - Admin sees all orders: time, number, amount, total */}
