@@ -16,7 +16,7 @@ export const userResponseSchema = z.object({
   phoneNumber: z.string().nullable().optional(),
   role: z.enum(["admin", "agent", "user"]),
   isVerified: z.boolean(),
-  balance: z.number(),
+  balance: z.number().optional(),
   totalOrdersToday: z.number().optional(),
   totalGBSentToday: z.number().optional(),
   totalSpentToday: z.number().optional(),
