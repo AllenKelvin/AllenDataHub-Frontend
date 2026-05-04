@@ -2,7 +2,7 @@ import { useCart, useRemoveFromCart, useCheckout, useAddToCart } from '@/hooks/u
 import { useUser } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useCartContext } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
@@ -16,8 +16,15 @@ export default function CartPage() {
   const checkout = useCheckout();
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'paystack'>('paystack');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { cartItems: localItems, removeFromCart: removeLocal, clearCart } = useCartContext();
+
+  useEffect(() => {
+    if (!checkout.isLoading) {
+      setIsProcessing(false);
+    }
+  }, [checkout.isLoading]);
 
   if (isLoading) return <div className="h-48 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-primary"/></div>;
 
@@ -173,12 +180,13 @@ export default function CartPage() {
                       setIsSyncing(false);
                     }
 
+                    setIsProcessing(true);
                     checkout.mutate({ paymentMethod });
                   }}
-                  disabled={isSyncing || checkout.isLoading || merged.length === 0 || (user?.role === 'agent' && paymentMethod === 'wallet' && (user?.balance ?? 0) < total)}
+                  disabled={isSyncing || checkout.isLoading || isProcessing || merged.length === 0 || (user?.role === 'agent' && paymentMethod === 'wallet' && (user?.balance ?? 0) < total)}
                 >
-                  {isSyncing || checkout.isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : null}
-                  {isSyncing ? 'Syncing Cart...' : checkout.isLoading ? (user?.role === 'agent' ? `Processing ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'} Payment...` : 'Processing Payment...') : (user?.role === 'agent' ? `Pay with ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'}` : 'Pay with Paystack')}
+                  {isSyncing || checkout.isLoading || isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : null}
+                  {isSyncing ? 'Syncing Cart...' : (checkout.isLoading || isProcessing) ? (user?.role === 'agent' ? `Processing ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'} Payment...` : 'Processing Payment...') : (user?.role === 'agent' ? `Pay with ${paymentMethod === 'wallet' ? 'Wallet' : 'Paystack'}` : 'Pay with Paystack')}
                 </Button>
               </div>
             </div>
