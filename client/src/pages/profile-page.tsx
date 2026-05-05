@@ -48,7 +48,7 @@ export default function ProfilePage() {
   if (isLoading) return <div className="h-[50vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   if (!user) return null;
 
-  const userEmail = user.email || user.username || '';
+  const userEmail = user.email || '';
 
   async function updateEmail() {
     if (!email || !email.includes('@')) {
@@ -80,6 +80,9 @@ export default function ProfilePage() {
   async function fundWallet() {
     if (!user) return;
     if (amount <= 0) return toast({ title: 'Invalid amount', variant: 'destructive' });
+    if (!userEmail || !userEmail.includes('@')) {
+      return toast({ title: 'Email required', description: 'Please update your profile with a valid email address before funding your wallet.', variant: 'destructive' });
+    }
     setIsPaymentLoading(true);
     try {
       const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
@@ -95,7 +98,8 @@ export default function ProfilePage() {
         setTimeout(() => { window.location.href = url; }, 200);
       } else {
         setIsPaymentLoading(false);
-        toast({ title: 'Payment init failed', description: 'Could not initialize Paystack', variant: 'destructive' });
+        const message = data?.message || 'Could not initialize Paystack';
+        toast({ title: 'Payment init failed', description: message, variant: 'destructive' });
       }
     } catch (e) {
       setIsPaymentLoading(false);

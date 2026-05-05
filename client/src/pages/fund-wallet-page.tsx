@@ -17,18 +17,22 @@ export default function FundWalletPage() {
 
   const adminFee = amount * 0.04; // 4% fee
   const netAmount = amount - adminFee;
+  const hasValidEmail = !!user.email && user.email.includes('@');
 
   if (isLoading) return <div className="h-[50vh] flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   if (!user) return null;
 
   async function fundWallet() {
     if (amount <= 0) return toast({ title: 'Invalid amount', variant: 'destructive' });
+    if (!user.email || !user.email.includes('@')) {
+      return toast({ title: 'Email required', description: 'Please update your profile with a valid email address before funding your wallet.', variant: 'destructive' });
+    }
     setIsPaymentLoading(true);
     try {
       const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
       const resp = await fetchWithAuth('/api/paystack/initialize', {
         method: 'POST',
-        body: JSON.stringify({ amount: Math.round(amount * 100), email: user.email || user.username || '', metadata: { type: 'wallet', agentId: user.id } }),
+        body: JSON.stringify({ amount: Math.round(amount * 100), email: user.email, metadata: { type: 'wallet', agentId: user.id } }),
       });
       const data = await resp.json();
       if (data && (data.data?.authorization_url || data.authorization_url)) {
@@ -37,7 +41,8 @@ export default function FundWalletPage() {
         setTimeout(() => { window.location.href = url; }, 200);
       } else {
         setIsPaymentLoading(false);
-        toast({ title: 'Payment init failed', description: 'Could not initialize Paystack', variant: 'destructive' });
+        const message = data?.message || 'Could not initialize Paystack';
+        toast({ title: 'Payment init failed', description: message, variant: 'destructive' });
       }
     } catch (e) {
       setIsPaymentLoading(false);
@@ -53,11 +58,16 @@ export default function FundWalletPage() {
         <p className="text-sm text-muted-foreground mt-2">Top up your agent wallet using Paystack.</p>
         <div className="mt-4 flex gap-2 items-center">
           <Input type="number" placeholder="Amount (GHS)" value={amount} onChange={(e) => setAmount(Number(e.target.value))} disabled={isPaymentLoading} />
-          <Button onClick={fundWallet} disabled={isPaymentLoading || amount <= 0}>
+          <Button onClick={fundWallet} disabled={isPaymentLoading || amount <= 0 || !hasValidEmail}>
             {isPaymentLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
             {isPaymentLoading ? 'Processing...' : 'Pay'}
           </Button>
         </div>
+        {!hasValidEmail && (
+          <p className="text-sm text-destructive mt-2">
+            A valid email is required for Paystack funding. Please update your profile with a valid email address.
+          </p>
+        )}
         
         {amount > 0 && (
           <div className="mt-6 space-y-2 p-4 bg-gray-50 rounded-lg">
