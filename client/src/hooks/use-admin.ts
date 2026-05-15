@@ -149,6 +149,29 @@ export function usePatchAgentApiPricing() {
   });
 }
 
+// Agent self-service API key generation
+export function useAgentGenerateApiKey() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async () => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth("/api/agent/api-access/generate-key", { method: "POST" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { message?: string }).message || "Failed to generate API key");
+      }
+      return res.json() as Promise<{ apiKey: string; message: string }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/api-access/status"] });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Generate key failed", description: e.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useIssueAgentApiKey() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

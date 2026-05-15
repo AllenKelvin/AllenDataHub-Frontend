@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useUser } from "@/hooks/use-auth";
+import { useAgentGenerateApiKey } from "@/hooks/use-admin";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -15,9 +17,12 @@ export default function ProfilePage() {
   const [email, setEmail] = useState<string>('');
   const [isSavingEmail, setIsSavingEmail] = useState(false);
   const [isPaymentLoading, setIsPaymentLoading] = useState(false);
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
+  const generateKeyMutation = useAgentGenerateApiKey();
 
   const { data: apiAccessStatus, isLoading: apiStatusLoading } = useQuery({
     queryKey: ["/api/agent/api-access/status"],
@@ -163,10 +168,31 @@ export default function ProfilePage() {
                     </span>
                   )}
                   {apiAccessStatus?.status === "active" && (
-                    <span className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md px-3 py-2">
-                      API key active — use the key provided by your admin with{" "}
-                      <code className="text-xs">X-API-Key</code> on the public API.
-                    </span>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm text-green-800 bg-green-50 border border-green-200 rounded-md px-3 py-2">
+                        API key active — generate or regenerate your secret key below.
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={generateKeyMutation.isPending}
+                        onClick={() =>
+                          generateKeyMutation.mutate(undefined, {
+                            onSuccess: (d) => {
+                              setGeneratedKey(d.apiKey);
+                              setCopySuccess(false);
+                            },
+                          })
+                        }
+                      >
+                        {generateKeyMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          "Generate API Key"
+                        )}
+                      </Button>
+                    </div>
                   )}
                   {apiAccessStatus?.status === "revoked" && (
                     <>
@@ -198,6 +224,54 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!generatedKey} onOpenChange={(o) => !o && setGeneratedKey(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>API Key Generated</DialogTitle>
+            <DialogDescription>
+              Copy this key now. It will not be shown again. Keep it secure and only share it with your developer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md bg-muted p-3 font-mono text-sm break-all select-all">
+              {generatedKey}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => {
+                  if (generatedKey) {
+                    navigator.clipboard.writeText(generatedKey);
+                    setCopySuccess(true);
+                    setTimeout(() => setCopySuccess(false), 2000);
+                  }
+                }}
+              >
+                {copySuccess ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy to clipboard
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setGeneratedKey(null)}
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
