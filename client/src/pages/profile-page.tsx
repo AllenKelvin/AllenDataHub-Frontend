@@ -139,7 +139,7 @@ export default function ProfilePage() {
           </div>
         </div>
         
-        {user.role === "agent" && user.isVerified && (
+        {user.role === "agent" && (
           <div className="mt-6 pt-6 border-t space-y-4">
             <div>
               <h3 className="font-semibold">Partner API</h3>
@@ -147,7 +147,11 @@ export default function ProfilePage() {
                 Request access to integrate your own site or app. An admin sets your API prices and issues a secret key.
                 Purchases use your wallet balance.
               </p>
-              {apiStatusLoading ? (
+              {!user.isVerified ? (
+                <div className="mt-3 rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+                  Your agent account must be verified before you can request API access or generate a key.
+                </div>
+              ) : apiStatusLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin mt-3 text-muted-foreground" />
               ) : (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
