@@ -24,7 +24,7 @@ export default function ProfilePage() {
   const qc = useQueryClient();
   const generateKeyMutation = useAgentGenerateApiKey();
 
-  const { data: apiAccessStatus, isLoading: apiStatusLoading } = useQuery({
+  const { data: apiAccessStatus, isLoading: apiStatusLoading, error: apiStatusError } = useQuery({
     queryKey: ["/api/agent/api-access/status"],
     queryFn: async () => {
       const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
@@ -163,16 +163,22 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {apiAccessStatus?.status === "none" && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={requestApiMutation.isPending}
-                      onClick={() => requestApiMutation.mutate()}
-                    >
-                      {requestApiMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      Request API access
-                    </Button>
+                  {apiStatusError && (
+                    <span className="text-sm text-destructive">Unable to load API access status. Please refresh the page.</span>
+                  )}
+                  {(!apiAccessStatus || apiAccessStatus.status === "none") && (
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={requestApiMutation.isPending}
+                        onClick={() => requestApiMutation.mutate()}
+                      >
+                        {requestApiMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                        Request API access
+                      </Button>
+                      <p className="text-sm text-muted-foreground">If you haven't requested access yet, click the button to notify admin.</p>
+                    </div>
                   )}
                   {apiAccessStatus?.status === "pending" && (
                     <span className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
@@ -219,9 +225,6 @@ export default function ProfilePage() {
                         Request again
                       </Button>
                     </>
-                  )}
-                  {!apiAccessStatus && !apiStatusLoading && (
-                    <span className="text-sm text-muted-foreground">No API access status is available yet.</span>
                   )}
                 </div>
               )}
