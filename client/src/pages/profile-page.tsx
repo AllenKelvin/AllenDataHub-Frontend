@@ -29,10 +29,12 @@ export default function ProfilePage() {
     queryFn: async () => {
       const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
       const res = await fetchWithAuth("/api/agent/api-access/status");
+      if (res.status === 403) return null;
       if (!res.ok) throw new Error("Failed to load API status");
       return res.json() as Promise<{ status: string; hasKey?: boolean }>;
     },
-    enabled: !!user && user.role === "agent" && !!user.isVerified,
+    enabled: !!user && user.role === "agent",
+    retry: false,
   });
 
   const requestApiMutation = useMutation({
@@ -147,12 +149,18 @@ export default function ProfilePage() {
                 Request access to integrate your own site or app. An admin sets your API prices and issues a secret key.
                 Purchases use your wallet balance.
               </p>
-              {!user.isVerified ? (
-                <div className="mt-3 rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
-                  Your agent account must be verified before you can request API access or generate a key.
-                </div>
-              ) : apiStatusLoading ? (
+              {apiStatusLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin mt-3 text-muted-foreground" />
+              ) : !user.isVerified ? (
+                <div className="mt-3 space-y-3">
+                  <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-700">
+                    Your agent account must be verified before you can generate an API key.
+                    Ask an admin to verify your account and then request API access.
+                  </div>
+                  <Button type="button" variant="secondary" disabled>
+                    Request API access
+                  </Button>
+                </div>
               ) : (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {apiAccessStatus?.status === "none" && (
@@ -211,6 +219,9 @@ export default function ProfilePage() {
                         Request again
                       </Button>
                     </>
+                  )}
+                  {!apiAccessStatus && !apiStatusLoading && (
+                    <span className="text-sm text-muted-foreground">No API access status is available yet.</span>
                   )}
                 </div>
               )}
