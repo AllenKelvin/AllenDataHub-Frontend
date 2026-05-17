@@ -3,7 +3,8 @@ import { useUnverifiedAgents, useVerifyAgent } from "@/hooks/use-admin";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertProductSchema, type InsertProduct } from "@shared/schema";
-import { Loader2, ShieldAlert, CheckCircle2, PackagePlus, KeyRound, Save, Ban } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2, ShieldAlert, CheckCircle2, PackagePlus, KeyRound, Save, Ban, Users, BadgeCheck, BadgeX, Wallet, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -53,101 +54,247 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-function WalletManager() {
-  const { data: agents } = useAgents();
-  const { mutate: credit, isPending } = useCreditAgent();
-  const [agentId, setAgentId] = useState<string | null>(null);
-  const [amount, setAmount] = useState<number>(0);
+function AdminAgentsTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: agents, isLoading: isLoadingAgents } = useAgents();
+  const { data: unverifiedAgents, isLoading: isLoadingUnverified } = useUnverifiedAgents();
+  const verifyMutation = useVerifyAgent();
+  const creditMutation = useCreditAgent();
+  const [adjustingId, setAdjustingId] = useState<string | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+
+  const handleVerify = (agentId: string) => {
+    verifyMutation.mutate(agentId, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/users/agents"] });
+      },
+    });
+  };
+
+  const handleCredit = (agentId: string) => {
+    const amount = parseFloat(adjustAmount);
+    if (!amount || !adjustReason.trim()) {
+      toast({ title: "Missing fields", description: "Enter amount and reason", variant: "destructive" });
+      return;
+    }
+
+    creditMutation.mutate({ id: agentId, amount }, {
+      onSuccess: () => {
+        toast({ title: "Balance adjusted successfully" });
+        queryClient.invalidateQueries({ queryKey: ["/api/users/agents"] });
+        setAdjustingId(null);
+        setAdjustAmount("");
+        setAdjustReason("");
+      },
+      onError: (err: any) => {
+        toast({ title: "Error", description: err?.message || "Failed to adjust balance", variant: "destructive" });
+      },
+    });
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-sm font-medium">Agent</label>
-          <select className="w-full p-2 border rounded" onChange={(e) => setAgentId(e.target.value)}>
-            <option value="">Select agent</option>
-            {agents?.map((a: any) => (
-              <option key={a._id || a.id} value={a._id || a.id}>{a.username}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-sm font-medium">Amount (GHS)</label>
-          <input type="number" className="w-full p-2 border rounded" value={amount} onChange={(e) => setAmount(Number(e.target.value))} />
-        </div>
+    <div className="space-y-8">
+      <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Agent Approvals</CardTitle>
+            <CardDescription>Review and verify pending agents before they receive wallet access.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingUnverified ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
+            ) : !unverifiedAgents?.length ? (
+              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                <p className="text-muted-foreground">No pending verifications.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {unverifiedAgents.map((agent: any) => (
+                  <div key={agent.id} className="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center text-accent-foreground font-bold">
+                        {agent.username?.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-foreground">{agent.username}</p>
+                        <p className="text-xs text-muted-foreground">Requested access</p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => handleVerify(agent.id)}
+                      disabled={verifyMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      size="sm"
+                    >
+                      {verifyMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                      Verify Agent
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Agent Balances</CardTitle>
+            <CardDescription>View current wallet balances for all agents and adjust funds manually.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingAgents ? (
+              <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
+            ) : !agents?.length ? (
+              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
+                <p className="text-muted-foreground">No agents found.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-2 font-semibold">Agent</th>
+                      <th className="text-left py-3 px-2 font-semibold">Email</th>
+                      <th className="text-left py-3 px-2 font-semibold">Balance</th>
+                      <th className="text-left py-3 px-2 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agents.map((agent: any) => (
+                      <tr key={agent.id} className="border-b last:border-0">
+                        <td className="py-3 px-2 font-medium">{agent.username ?? "-"}</td>
+                        <td className="py-3 px-2">{agent.email ?? "-"}</td>
+                        <td className="py-3 px-2 text-green-600">GHS {Number(agent.balance ?? 0).toFixed(2)}</td>
+                        <td className="py-3 px-2">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${agent.isVerified ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                            {agent.isVerified ? "Verified" : "Pending"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <div>
-        <button
-          className="bg-primary text-white px-4 py-2 rounded flex items-center gap-2 disabled:opacity-50"
-          disabled={!agentId || amount <= 0 || isPending}
-          onClick={() => agentId && credit({ id: agentId, amount })}
-        >
-          {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-          {isPending ? 'Crediting...' : 'Credit Wallet'}
-        </button>
+      <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-sidebar px-5 py-4 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
+          <h2 className="text-white font-bold flex-1">Manage Agent Wallets</h2>
+          <span className="text-white/40 text-xs">{agents ? agents.length : 0} agent{agents?.length === 1 ? "" : "s"}</span>
+        </div>
+
+        {isLoadingAgents ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !agents?.length ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
+            <p className="font-semibold">No agents available for wallet management.</p>
+          </div>
+        ) : (
+          <div>
+            {agents.map((agent: any, idx: number) => (
+              <div key={agent.id} className="border-b border-border last:border-b-0 slide-in-left" data-delay={Math.min(idx, 7)}>
+                <div className="px-5 py-4 flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-primary font-black text-sm">
+                        {agent.username?.replace("@", "").substring(0, 2).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm text-foreground">{agent.username}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${agent.isVerified ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                          {agent.isVerified ? "✓ Verified" : "Pending"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{agent.email} · {agent.phoneNumber ?? "-"}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-sidebar rounded-xl px-4 py-2">
+                    <Wallet className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-white text-sm font-black">GHS {Number(agent.balance ?? 0).toFixed(2)}</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={agent.isVerified ? "outline" : "default"}
+                      onClick={() => handleVerify(agent.id)}
+                      disabled={verifyMutation.isPending}
+                      className={`gap-1.5 h-8 text-xs font-semibold ${agent.isVerified ? "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300" : ""}`}
+                    >
+                      {agent.isVerified ? <><BadgeX className="h-3.5 w-3.5" /> Deny</> : <><BadgeCheck className="h-3.5 w-3.5" /> Approve</>}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAdjustingId(adjustingId === agent.id ? null : agent.id)}
+                      className="gap-1.5 h-8 text-xs font-semibold"
+                    >
+                      <Wallet className="h-3.5 w-3.5" />
+                      Balance
+                      {adjustingId === agent.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    </Button>
+                  </div>
+                </div>
+
+                {adjustingId === agent.id && (
+                  <div className="mx-5 mb-4 bg-muted/40 border border-border rounded-xl p-4">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Adjust Wallet Balance</p>
+                    <div className="flex flex-wrap gap-3 items-end">
+                      <div>
+                        <label className="text-xs font-semibold text-foreground/60 block mb-1">Amount (GHS)</label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={adjustAmount}
+                          onChange={(e) => setAdjustAmount(e.target.value)}
+                          className="w-[120px] h-9 text-sm font-mono"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-[180px]">
+                        <label className="text-xs font-semibold text-foreground/60 block mb-1">Reason</label>
+                        <Input
+                          placeholder="Reason for adjustment"
+                          value={adjustReason}
+                          onChange={(e) => setAdjustReason(e.target.value)}
+                          className="h-9 text-sm"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleCredit(agent.id)}
+                          disabled={creditMutation.isPending}
+                          className="h-9 bg-emerald-600 hover:bg-emerald-700 font-semibold"
+                        >
+                          {creditMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply Credit"}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setAdjustingId(null)} className="h-9">Cancel</Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
-  );
-}
-
-function AgentBalancesTable() {
-  const { data: agents, isLoading } = useAgents();
-  
-  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
-  
-  const totalBalance = (agents ?? []).reduce((sum: number, a: any) => sum + (a.balance ?? 0), 0);
-  
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Agent Account Balances</CardTitle>
-        <CardDescription>View all agent wallets and their current balances.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-2 font-semibold">Agent Name</th>
-                <th className="text-left py-3 px-2 font-semibold">Email</th>
-                <th className="text-left py-3 px-2 font-semibold">Balance (GHS)</th>
-                <th className="text-left py-3 px-2 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(agents ?? []).map((a: any) => (
-                <tr key={a._id || a.id} className="border-b last:border-0">
-                  <td className="py-3 px-2 font-medium">{a.username ?? '-'}</td>
-                  <td className="py-3 px-2">{a.email ?? '-'}</td>
-                  <td className="py-3 px-2">
-                    <span className={`font-semibold ${(a.balance ?? 0) > 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                      GHS {Number(a.balance ?? 0).toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-2">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      a.verified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {a.verified ? 'Verified' : 'Pending'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {(!agents || agents.length === 0) && (
-            <p className="text-center py-6 text-muted-foreground">No agents yet.</p>
-          )}
-          {agents && agents.length > 0 && (
-            <div className="mt-4 pt-4 border-t font-bold flex justify-between">
-              <span>Total Agent Balances</span>
-              <span className="text-green-600">GHS {totalBalance.toFixed(2)}</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -550,8 +697,6 @@ function AgentApiAccessRowCard({
 }
 
 export default function AdminPage() {
-  const { data: unverifiedAgents, isLoading: isLoadingAgents } = useUnverifiedAgents();
-  const { mutate: verifyAgent, isPending: isVerifying } = useVerifyAgent();
   const { mutate: createProduct, isPending: isCreatingProduct } = useCreateProduct();
 
   // Create Product Form - prices with decimals, user and agent prices must differ
@@ -595,79 +740,15 @@ export default function AdminPage() {
       </div>
 
       <Tabs defaultValue="agents" className="w-full">
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 h-auto gap-1 mb-8 p-1">
-          <TabsTrigger value="agents">Agent Verification</TabsTrigger>
-          <TabsTrigger value="balances">Agent Balances</TabsTrigger>
-          <TabsTrigger value="wallet">Wallet Manager</TabsTrigger>
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-4 h-auto gap-1 mb-8 p-1">
+          <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="api">API access</TabsTrigger>
           <TabsTrigger value="orders">All Orders</TabsTrigger>
           <TabsTrigger value="products">Manage Packages</TabsTrigger>
         </TabsList>
 
-        {/* AGENTS TAB */}
         <TabsContent value="agents" className="animate-in fade-in slide-in-from-left-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Agent Approvals</CardTitle>
-              <CardDescription>
-                Review and verify new agent registrations. Verified agents gain access to wholesale features.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingAgents ? (
-                <div className="flex justify-center py-8"><Loader2 className="animate-spin" /></div>
-              ) : unverifiedAgents?.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed">
-                  <p className="text-muted-foreground">No pending verifications.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {unverifiedAgents?.map((agent) => (
-                    <div key={agent.id} className="flex items-center justify-between p-4 bg-white border rounded-xl shadow-sm">
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center text-accent-foreground font-bold">
-                          {agent.username.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-foreground">{agent.username}</p>
-                          <p className="text-xs text-muted-foreground">Requested Access</p>
-                        </div>
-                      </div>
-                      <Button 
-                        onClick={() => verifyAgent(agent.id)}
-                        disabled={isVerifying}
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        size="sm"
-                      >
-                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                        Verify Agent
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* AGENT BALANCES TAB */}
-        <TabsContent value="balances" className="animate-in fade-in slide-in-from-left-4">
-          <AgentBalancesTable />
-        </TabsContent>
-
-        <TabsContent value="wallet" className="animate-in fade-in slide-in-from-bottom-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Wallet Manager</CardTitle>
-              <CardDescription>Manually credit GHS into an Agent's wallet.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <WalletManager />
-            </CardContent>
-          </Card>
-          <div className="mt-6">
-            <TotalsPanel />
-          </div>
+          <AdminAgentsTab />
         </TabsContent>
 
         <TabsContent value="api" className="animate-in fade-in slide-in-from-bottom-4">
