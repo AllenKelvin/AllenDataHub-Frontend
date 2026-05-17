@@ -134,8 +134,8 @@ function AdminAgentsTab() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-sidebar rounded-xl px-4 py-2">
-                  <Wallet className="h-3.5 w-3.5 text-primary" />
+                <div className="flex items-center gap-2 bg-slate-950 text-white rounded-xl px-4 py-2 shadow-sm">
+                  <Wallet className="h-3.5 w-3.5 text-white" />
                   <span className="text-white text-sm font-black">GHS {Number(agent.balance ?? 0).toFixed(2)}</span>
                 </div>
 
