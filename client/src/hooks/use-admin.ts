@@ -27,7 +27,10 @@ export function useVerifyAgent() {
       const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
       const res = await fetchWithAuth(url, { method: "PATCH" });
 
-      if (!res.ok) throw new Error("Failed to verify agent");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body && (body.message || body.error)) || "Failed to verify agent");
+      }
       return api.users.verifyAgent.responses[200].parse(await res.json());
     },
     onSuccess: (user) => {

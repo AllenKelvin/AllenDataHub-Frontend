@@ -23,14 +23,17 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: async (data: InsertProduct) => {
-      const res = await fetch(`${BACKEND_URL}${api.products.create.path}`, {
+      const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
+      const res = await fetchWithAuth(api.products.create.path, {
         method: "POST",
-        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
-      if (!res.ok) throw new Error("Failed to create product");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body && (body.message || body.error)) || "Failed to create product");
+      }
       return api.products.create.responses[201].parse(await res.json());
     },
     onSuccess: () => {
