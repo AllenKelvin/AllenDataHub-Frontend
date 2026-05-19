@@ -1,5 +1,5 @@
 import { useCreateProduct, useProducts } from "@/hooks/use-products";
-import { useVerifyAgent } from "@/hooks/use-admin";
+import { useVerifyAgent, useDenyAgent } from "@/hooks/use-admin";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertProductSchema, type InsertProduct } from "@shared/schema";
@@ -59,6 +59,7 @@ function AdminAgentsTab() {
   const queryClient = useQueryClient();
   const { data: agents, isLoading: isLoadingAgents } = useAgents();
   const verifyMutation = useVerifyAgent();
+  const denyMutation = useDenyAgent();
   const creditMutation = useCreditAgent();
   const [adjustingId, setAdjustingId] = useState<string | null>(null);
   const [adjustAmount, setAdjustAmount] = useState("");
@@ -66,6 +67,14 @@ function AdminAgentsTab() {
 
   const handleVerify = (agentId: string) => {
     verifyMutation.mutate(agentId, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/users/agents"] });
+      },
+    });
+  };
+
+  const handleDeny = (agentId: string) => {
+    denyMutation.mutate(agentId, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["/api/users/agents"] });
       },
@@ -143,8 +152,8 @@ function AdminAgentsTab() {
                   <Button
                     size="sm"
                     variant={agent.isVerified ? "outline" : "default"}
-                    onClick={() => handleVerify(agent.id)}
-                    disabled={verifyMutation.isPending}
+                    onClick={() => agent.isVerified ? handleDeny(agent.id) : handleVerify(agent.id)}
+                    disabled={verifyMutation.isPending || denyMutation.isPending}
                     className={`gap-1.5 h-8 text-xs font-semibold ${agent.isVerified ? "border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300" : ""}`}
                   >
                     {agent.isVerified ? <><BadgeX className="h-3.5 w-3.5" /> Deny</> : <><BadgeCheck className="h-3.5 w-3.5" /> Approve</>}

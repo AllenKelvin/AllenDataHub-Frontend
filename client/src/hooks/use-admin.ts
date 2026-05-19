@@ -43,6 +43,31 @@ export function useVerifyAgent() {
   });
 }
 
+// Deny Agent
+export function useDenyAgent() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth(`/api/users/${id}/deny`, { method: "PATCH" });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body && (body.message || body.error)) || "Failed to deny agent");
+      }
+      return res.json();
+    },
+    onSuccess: (user) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/agents"] });
+      toast({ title: "Agent Denied", description: `${user.username} access has been revoked.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Denial Failed", description: error.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useAgents() {
   return useQuery({
     queryKey: ["/api/users/agents"],
