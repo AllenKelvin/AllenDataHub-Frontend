@@ -62,7 +62,7 @@ export default function DashboardPage() {
       <div className="bg-gradient-to-r from-primary to-primary/80 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10">
           <h1 className="text-3xl font-display font-bold mb-2">
-            Welcome back, {user.username}!
+            Welcome back, {user.username || user.fullName || 'there'}!
           </h1>
           <p className="text-primary-foreground/80 max-w-lg">
             {user.role === 'agent' 

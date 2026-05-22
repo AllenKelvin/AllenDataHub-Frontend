@@ -104,10 +104,10 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-t border-border bg-gray-50/50">
           <div className="flex items-center gap-3 px-4 mb-4">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-              {user.username.substring(0, 2).toUpperCase()}
+              {(user.username || user.fullName || 'U').substring(0, 2).toUpperCase()}
             </div>
             <div className="overflow-hidden">
-              <p className="font-semibold text-sm truncate">{user.username}</p>
+              <p className="font-semibold text-sm truncate">{user.username || user.fullName || 'User'}</p>
               <p className="text-xs text-muted-foreground capitalize">{user.role}</p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                     aria-label="User menu"
                   >
                     <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">
-                      {user.username.substring(0, 2).toUpperCase()}
+                      {(user.username || user.fullName || 'U').substring(0, 2).toUpperCase()}
                     </div>
                   </button>
 
