@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertProductSchema, type InsertProduct } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, ShieldAlert, CheckCircle2, PackagePlus, KeyRound, Save, Ban, Users, BadgeCheck, BadgeX, Wallet, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, ShieldAlert, CheckCircle2, PackagePlus, KeyRound, Save, Ban, Users, BadgeCheck, BadgeX, Wallet, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -102,6 +102,26 @@ function AdminAgentsTab() {
     });
   };
 
+  // Recent deposits dialog
+  const [depositsOpen, setDepositsOpen] = useState(false);
+  const [selectedAgentDeposits, setSelectedAgentDeposits] = useState<any[]>([]);
+  const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null);
+
+  const openDeposits = async (agentId: string, agentName?: string) => {
+    try {
+      const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
+      const res = await fetchWithAuth(`/api/admin/agents/${agentId}/deposits`);
+      if (!res.ok) throw new Error('Failed to load deposits');
+      const data = await res.json();
+      setSelectedAgentDeposits(data || []);
+      setSelectedAgentName(agentName || null);
+      setDepositsOpen(true);
+    } catch (e) {
+      console.error('Failed to load deposits', e);
+      toast({ title: 'Failed to load deposits', description: (e as any).message || '' , variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
       <div className="bg-sidebar px-5 py-4 flex items-center gap-3">
@@ -143,9 +163,14 @@ function AdminAgentsTab() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 bg-slate-950 text-white rounded-xl px-4 py-2 shadow-sm">
-                  <Wallet className="h-3.5 w-3.5 text-white" />
-                  <span className="text-white text-sm font-black">GHS {Number(agent.balance ?? 0).toFixed(2)}</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-slate-950 text-white rounded-xl px-4 py-2 shadow-sm">
+                    <Wallet className="h-3.5 w-3.5 text-white" />
+                    <span className="text-white text-sm font-black">GHS {Number(agent.balance ?? 0).toFixed(2)}</span>
+                  </div>
+                  <button title="Recent deposits" onClick={() => openDeposits(agent.id, agent.username)} className="p-2 rounded-md hover:bg-gray-100">
+                    <Eye className="w-4 h-4" />
+                  </button>
                 </div>
 
                 <div className="flex gap-2">
@@ -214,6 +239,34 @@ function AdminAgentsTab() {
           ))}
         </div>
       )}
+        {/* Deposits dialog */}
+        <Dialog open={depositsOpen} onOpenChange={(o) => !o && setDepositsOpen(false)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Recent Deposits {selectedAgentName ? `— ${selectedAgentName}` : ''}</DialogTitle>
+              <DialogDescription>Shows recent credited deposits with before/after and platform.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 mt-4">
+              {selectedAgentDeposits.length === 0 && <div className="text-sm text-muted-foreground">No recent deposits</div>}
+              {selectedAgentDeposits.map((d: any) => (
+                <div key={d.id} className="border p-3 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium">Credited GHS {Number(d.meta?.amount ?? 0).toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">{d.createdAt ? format(new Date(d.createdAt), 'MMM d, yyyy h:mm a') : ''}</div>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      <div>Platform: {d.meta?.platform ?? '-'}</div>
+                      <div>Before: GHS {Number(d.meta?.before ?? 0).toFixed(2)}</div>
+                      <div>After: GHS {Number(d.meta?.after ?? 0).toFixed(2)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
