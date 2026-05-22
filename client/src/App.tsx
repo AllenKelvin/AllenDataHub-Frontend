@@ -17,6 +17,7 @@ import CartPage from "@/pages/cart-page";
 import ProfilePage from "@/pages/profile-page";
 import FundWalletPage from "@/pages/fund-wallet-page";
 import PaymentReturnPage from "@/pages/payment-return-page";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Initialize JWT token getter for queryClient
 setGetAccessTokenFn(getAccessToken);
@@ -93,7 +94,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <CartProvider>
         <TooltipProvider>
-          <Router />
+          <ErrorBoundary>
+            <Router />
+          </ErrorBoundary>
           <Toaster />
         </TooltipProvider>
       </CartProvider>
