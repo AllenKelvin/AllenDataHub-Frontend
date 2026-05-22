@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/use-auth";
 import { useMyOrders } from "../hooks/use-orders";
 import { useOrderPolling } from "../hooks/use-order-polling";
@@ -18,6 +18,7 @@ import { OrderStatusBadge } from "@/components/order-status-badge";
 import { OrderComplaintDialog } from "@/components/order-complaint-dialog";
 
 export default function DashboardPage() {
+  console.log('[DashboardPage] render start');
   const [ordersPage, setOrdersPage] = useState(1);
   const [complaintDialogOpen, setComplaintDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -31,27 +32,9 @@ export default function DashboardPage() {
   // Keep all hooks at the top-level to preserve hook order
   const [depositsOpen, setDepositsOpen] = useState(false);
   const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
-
-  // Poll the first pending/processing order for status updates
-  const pendingOrder = orders.find((o: any) => o.status === "processing" || o.status === "pending");
-  useOrderPolling(pendingOrder?.id, !!pendingOrder);
-
-  if (isUserLoading || isOrdersLoading) {
-    return (
-      <div className="h-[50vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) return null; // Handled by layout/auth redirect
-
-  // Stats
-  const totalOrders = pagination.total ?? 0;
-  const completedOrders = completedCount;
-
-  // Recent deposits (loaded from notifications where meta.type === 'deposit')
   const [deposits, setDeposits] = useState<any[]>([]);
+
+  console.log('[DashboardPage] state', { isUserLoading, isOrdersLoading, userId: user?.id, ordersCount: orders.length });
 
   useEffect(() => {
     let mounted = true;
@@ -71,6 +54,24 @@ export default function DashboardPage() {
     if (user?.role === 'agent') loadDeposits();
     return () => { mounted = false; };
   }, [user]);
+
+  // Poll the first pending/processing order for status updates
+  const pendingOrder = orders.find((o: any) => o.status === "processing" || o.status === "pending");
+  useOrderPolling(pendingOrder?.id, !!pendingOrder);
+
+  if (isUserLoading || isOrdersLoading) {
+    return (
+      <div className="h-[50vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) return null; // Handled by layout/auth redirect
+
+  // Stats
+  const totalOrders = pagination.total ?? 0;
+  const completedOrders = completedCount;
   
   return (
     <div className="space-y-8">
