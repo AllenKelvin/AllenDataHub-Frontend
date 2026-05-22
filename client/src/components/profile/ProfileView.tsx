@@ -4,13 +4,61 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@shared/routes";
+import { useAgentGenerateApiKey } from "@/hooks/use-admin";
 
 type User = any;
 
 export default function ProfileView({ user }: { user: User }) {
   const [showMenu, setShowMenu] = useState(false);
   const [editing, setEditing] = useState(false);
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const genKey = useAgentGenerateApiKey();
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
   const [form, setForm] = useState({ fullName: user.username || "", email: user.email || "", phone: user.phoneNumber || "", whatsapp: user.whatsapp || "", momo: user.momo || "" });
+
+  function resetForm() {
+    setForm({ fullName: user.username || "", email: user.email || "", phone: user.phoneNumber || "", whatsapp: user.whatsapp || "", momo: user.momo || "" });
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
+      const res = await fetchWithAuth('/api/user', { method: 'PATCH', body: JSON.stringify({ fullName: form.fullName, email: form.email, phoneNumber: form.phone, whatsapp: form.whatsapp, momo: form.momo }) });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.message || 'Failed to update profile');
+      }
+      const updated = await res.json();
+      qc.invalidateQueries({ queryKey: [api.auth.me.path] });
+      toast({ title: 'Profile saved' });
+      setEditing(false);
+    } catch (e: any) {
+      toast({ title: 'Save failed', description: e?.message || String(e), variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleGenerateKey() {
+    setGenerating(true);
+    try {
+      const d = await genKey.mutateAsync();
+      setApiKey(d.apiKey || null);
+      toast({ title: 'API key generated', description: 'Copy it now; it will not be shown again.' });
+    } catch (e: any) {
+      toast({ title: 'API generation failed', description: e?.message || String(e), variant: 'destructive' });
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -88,6 +136,20 @@ export default function ProfileView({ user }: { user: User }) {
                   </div>
                 )}
               </div>
+              {user.role === 'agent' && (
+                <div className="p-4 bg-slate-50 border border-border rounded-lg text-left">
+                  <div className="text-xs text-muted-foreground">API Access</div>
+                  <div className="text-lg font-bold">{apiKey ? 'Key generated' : 'No API key'}</div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Button variant="secondary" onClick={handleGenerateKey} disabled={generating}>{generating ? 'Generating...' : (apiKey ? 'Regenerate Key' : 'Generate API Key')}</Button>
+                    {apiKey && (
+                      <button className="px-3 py-1 bg-slate-800 text-white rounded" onClick={() => { navigator.clipboard.writeText(apiKey); toast({ title: 'Copied' }); }}>
+                        Copy
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -123,8 +185,8 @@ export default function ProfileView({ user }: { user: User }) {
             </div>
 
             <div className="mt-4 flex items-center gap-3">
-              <Button onClick={() => setEditing(false)}>Save Changes</Button>
-              <Button variant="ghost">Cancel</Button>
+              <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
+              <Button variant="ghost" onClick={() => { resetForm(); setEditing(false); }}>Cancel</Button>
             </div>
           </div>
         </div>

@@ -102,8 +102,7 @@ function AdminAgentsTab() {
     });
   };
 
-  // Recent deposits dialog
-  const [depositsOpen, setDepositsOpen] = useState(false);
+  // Recent deposits (fetched for admin view but no dialog here)
   const [selectedAgentDeposits, setSelectedAgentDeposits] = useState<any[]>([]);
   const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null);
 
@@ -115,7 +114,6 @@ function AdminAgentsTab() {
       const data = await res.json();
       setSelectedAgentDeposits(data || []);
       setSelectedAgentName(agentName || null);
-      setDepositsOpen(true);
     } catch (e) {
       console.error('Failed to load deposits', e);
       toast({ title: 'Failed to load deposits', description: (e as any).message || '' , variant: 'destructive' });
@@ -239,33 +237,7 @@ function AdminAgentsTab() {
           ))}
         </div>
       )}
-      {/* Deposits dialog */}
-      <Dialog open={depositsOpen} onOpenChange={(o) => !o && setDepositsOpen(false)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Recent Deposits {selectedAgentName ? `— ${selectedAgentName}` : ''}</DialogTitle>
-            <DialogDescription>Shows recent credited deposits with before/after and platform.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 mt-4">
-            {selectedAgentDeposits.length === 0 && <div className="text-sm text-muted-foreground">No recent deposits</div>}
-            {selectedAgentDeposits.map((d: any) => (
-              <div key={d.id} className="border p-3 rounded-md">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-medium">Credited GHS {Number(d.meta?.amount ?? 0).toFixed(2)}</div>
-                    <div className="text-xs text-muted-foreground">{d.createdAt ? format(new Date(d.createdAt), 'MMM d, yyyy h:mm a') : ''}</div>
-                  </div>
-                  <div className="text-right text-xs text-muted-foreground">
-                    <div>Platform: {d.meta?.platform ?? '-'}</div>
-                    <div>Before: GHS {Number(d.meta?.before ?? 0).toFixed(2)}</div>
-                    <div>After: GHS {Number(d.meta?.after ?? 0).toFixed(2)}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Deposits fetching available for admin tools; quick-view dialog removed as requested */}
     </div>
   );
 }

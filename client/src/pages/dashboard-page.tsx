@@ -3,7 +3,15 @@ import { useUser } from "@/hooks/use-auth";
 import { useMyOrders } from "../hooks/use-orders";
 import { useOrderPolling } from "../hooks/use-order-polling";
 import { format } from "date-fns";
-import { Loader2, TrendingUp, Wallet, Wifi, CheckCircle2, Clock, Cog, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
+import { Loader2, TrendingUp, Wallet, Wifi, CheckCircle2, Clock, Cog, ChevronLeft, ChevronRight, MoreVertical, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -38,6 +46,15 @@ export default function DashboardPage() {
   // Stats
   const totalOrders = pagination.total ?? 0;
   const completedOrders = completedCount;
+  const [depositsOpen, setDepositsOpen] = useState(false);
+  const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
+
+  // Mock deposits data (populates dynamically)
+  const mockDeposits = [
+    { id: 'd1', amount: 2000, createdAt: new Date().toISOString(), platform: 'Paystack', meta: { before: 5000, after: 7000 }, status: 'credited' },
+    { id: 'd2', amount: 150.5, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), platform: 'Bank', meta: { before: 1200, after: 1350.5 }, status: 'credited' },
+    { id: 'd3', amount: 50, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), platform: 'USSD', meta: { before: 300, after: 350 }, status: 'credited' },
+  ];
   
   return (
     <div className="space-y-8">
@@ -254,6 +271,68 @@ export default function DashboardPage() {
           onOpenChange={setComplaintDialogOpen}
           order={selectedOrder}
         />
+      )}
+
+      {/* Recent Deposits (Agent view) */}
+      {user.role === 'agent' && (
+        <div className="bg-slate-900/60 rounded-2xl p-4 text-white">
+          <div className="flex items-center gap-3 mb-3">
+            <Wallet className="w-6 h-6 text-emerald-400" />
+            <h3 className="text-xl font-semibold">Recent Deposits</h3>
+          </div>
+
+          <div className="space-y-3">
+            {mockDeposits.map((d) => (
+              <div
+                key={d.id}
+                className="bg-slate-900/50 border border-slate-700/40 rounded-lg hover:bg-slate-800/50 transition-colors"
+              >
+                <div className="flex justify-between items-center px-4 py-3">
+                  <div>
+                    <div className="text-emerald-500 font-bold">GHS {Number(d.amount).toFixed(2)}</div>
+                    <div className="text-xs text-slate-300">{format(new Date(d.createdAt), 'MMM d, h:mm a')}</div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-white bg-slate-800 border border-gray-400/10 px-2 py-0.5 rounded-full">{d.status}</span>
+                    <button
+                      aria-label="View deposit"
+                      onClick={() => { setSelectedDeposit(d); setDepositsOpen(true); }}
+                      className="text-slate-300 hover:text-white transition-colors"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Dialog open={depositsOpen} onOpenChange={(o) => { if (!o) setSelectedDeposit(null); setDepositsOpen(o); }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Deposit Details</DialogTitle>
+                <DialogDescription>
+                  {selectedDeposit ? `GHS ${Number(selectedDeposit.amount).toFixed(2)} • ${selectedDeposit.platform}` : 'Deposit information'}
+                </DialogDescription>
+              </DialogHeader>
+
+              {selectedDeposit && (
+                <div className="space-y-3 py-2">
+                  <div className="text-sm">Amount: <span className="font-bold">GHS {Number(selectedDeposit.amount).toFixed(2)}</span></div>
+                  <div className="text-sm">Date: <span className="text-muted-foreground">{format(new Date(selectedDeposit.createdAt), 'MMM d, yyyy h:mm a')}</span></div>
+                  <div className="text-sm">Platform: <span className="font-medium">{selectedDeposit.platform}</span></div>
+                  <div className="text-sm">Balance before: GHS {Number(selectedDeposit.meta?.before ?? 0).toFixed(2)}</div>
+                  <div className="text-sm">Balance after: GHS {Number(selectedDeposit.meta?.after ?? 0).toFixed(2)}</div>
+                </div>
+              )}
+
+              <DialogFooter>
+                <button className="px-4 py-2 bg-slate-800 text-white rounded-lg" onClick={() => setDepositsOpen(false)}>Close</button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       )}
     </div>
   );
