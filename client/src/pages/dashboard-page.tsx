@@ -28,6 +28,9 @@ export default function DashboardPage() {
   const orders = ordersData?.orders ?? [];
   const pagination = ordersData?.pagination ?? { total: 0, page: 1, limit, pages: 0 };
   const completedCount = ordersData?.completedCount ?? 0;
+  // Keep all hooks at the top-level to preserve hook order
+  const [depositsOpen, setDepositsOpen] = useState(false);
+  const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
 
   // Poll the first pending/processing order for status updates
   const pendingOrder = orders.find((o: any) => o.status === "processing" || o.status === "pending");
@@ -46,8 +49,6 @@ export default function DashboardPage() {
   // Stats
   const totalOrders = pagination.total ?? 0;
   const completedOrders = completedCount;
-  const [depositsOpen, setDepositsOpen] = useState(false);
-  const [selectedDeposit, setSelectedDeposit] = useState<any | null>(null);
 
   // Mock deposits data (populates dynamically)
   const mockDeposits = [
