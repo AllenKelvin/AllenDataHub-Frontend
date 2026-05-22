@@ -50,12 +50,27 @@ export default function DashboardPage() {
   const totalOrders = pagination.total ?? 0;
   const completedOrders = completedCount;
 
-  // Mock deposits data (populates dynamically)
-  const mockDeposits = [
-    { id: 'd1', amount: 2000, createdAt: new Date().toISOString(), platform: 'Paystack', meta: { before: 5000, after: 7000 }, status: 'credited' },
-    { id: 'd2', amount: 150.5, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), platform: 'Bank', meta: { before: 1200, after: 1350.5 }, status: 'credited' },
-    { id: 'd3', amount: 50, createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), platform: 'USSD', meta: { before: 300, after: 350 }, status: 'credited' },
-  ];
+  // Recent deposits (loaded from notifications where meta.type === 'deposit')
+  const [deposits, setDeposits] = useState<any[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadDeposits() {
+      try {
+        const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
+        const res = await fetchWithAuth('/api/notifications');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        const dep = (data || []).filter((d: any) => d.meta && d.meta.type === 'deposit').map((d: any) => ({ id: d.id, amount: d.meta?.amount ?? d.meta?.amountGHS ?? 0, createdAt: d.createdAt, platform: d.meta?.platform || d.meta?.by || 'unknown', meta: d.meta, status: 'credited' }));
+        setDeposits(dep);
+      } catch (e) {
+        console.error('[Deposits] load failed', e);
+      }
+    }
+    if (user?.role === 'agent') loadDeposits();
+    return () => { mounted = false; };
+  }, [user]);
   
   return (
     <div className="space-y-8">
@@ -283,7 +298,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {mockDeposits.map((d) => (
+            {deposits.map((d) => (
               <div
                 key={d.id}
                 className="bg-slate-900/50 border border-slate-700/40 rounded-lg hover:bg-slate-800/50 transition-colors"

@@ -253,6 +253,26 @@ function BellNotifications() {
                   <div className="text-sm">{n.message}</div>
                   <div className="text-xs text-muted-foreground mt-1">{new Date(n.createdAt).toLocaleString()}</div>
                 </div>
+                <div className="flex items-center gap-2 ml-3">
+                  {!n.read && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
+                          const res = await fetchWithAuth(`/api/notifications/${n.id}/read`, { method: 'POST' });
+                          if (res.ok) {
+                            setNotes((s) => s.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+                          }
+                        } catch (e) {
+                          console.error('Mark read failed', e);
+                        }
+                      }}
+                      className="text-xs px-2 py-1 bg-primary/10 text-primary rounded"
+                    >
+                      Mark read
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

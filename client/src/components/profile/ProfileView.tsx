@@ -123,10 +123,10 @@ export default function ProfileView({ user }: { user: User }) {
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-3">
-              <div className="p-4 bg-white border border-border rounded-lg text-left">
-                <div className="text-xs text-muted-foreground">Wallet Balance</div>
-                <div className="text-lg font-bold text-emerald-600">GHS {(user.balance || 0).toFixed(2)}</div>
-                {user.role === 'agent' && (
+              {user.role === 'agent' && (
+                <div className="p-4 bg-white border border-border rounded-lg text-left">
+                  <div className="text-xs text-muted-foreground">Wallet Balance</div>
+                  <div className="text-lg font-bold text-emerald-600">GHS {(user.balance || 0).toFixed(2)}</div>
                   <div className="mt-3">
                     <Link href="/fund-wallet">
                       <a>
@@ -134,8 +134,8 @@ export default function ProfileView({ user }: { user: User }) {
                       </a>
                     </Link>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               {user.role === 'agent' && (
                 <div className="p-4 bg-slate-50 border border-border rounded-lg text-left">
                   <div className="text-xs text-muted-foreground">API Access</div>
