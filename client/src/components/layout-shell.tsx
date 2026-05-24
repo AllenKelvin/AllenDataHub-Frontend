@@ -144,14 +144,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
               {isMobileMenuOpen ? <X /> : <Menu />}
             </button>
 
-            {/* Agent wallet only */}
-            {user.role === 'agent' && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/20">
-                <span className="text-xs font-medium text-muted-foreground">Wallet:</span>
-                <span className="font-bold text-primary">GHS {user.balance?.toFixed(2) || '0.00'}</span>
-              </div>
-            )}
-            {user.role !== 'agent' && <div className="flex-1" />}
+            <div className="flex-1" />
 
             {/* Top right: Cart + User menu */}
             <div className="flex items-center gap-4 ml-auto">

@@ -293,10 +293,10 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-gray-50">
+    <div className="min-h-screen w-full flex bg-background text-foreground">
       {/* Left Panel - Hero/Branding */}
       <div className="hidden lg:flex w-1/2 bg-primary relative overflow-hidden items-center justify-center p-12">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1535132011086-b8818f016104?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1535132011086-b8818f016104?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
         {/* Descriptive comment: Abstract technological landscape background representing connection */}
         
         <div className="relative z-10 text-white max-w-xl">
@@ -327,8 +327,8 @@ export default function AuthPage() {
       </div>
 
       {/* Right Panel - Forms */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-background">
+        <div className="w-full max-w-md space-y-8 bg-card border border-border rounded-[2rem] p-8 shadow-xl">
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-bold font-display text-primary">Welcome to AllenDataHub</h2>
             <p className="text-muted-foreground mt-2">Sign in to manage your account or get started today.</p>
@@ -342,7 +342,7 @@ export default function AuthPage() {
             </TabsList>
 
             <TabsContent value="login" className="animate-in fade-in slide-in-from-left-4 duration-300">
-              <Card className="border-none shadow-none">
+              <Card className="border-none bg-transparent shadow-none">
                 <CardContent className="p-0">
                   <Form {...loginForm}>
                     <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
@@ -420,7 +420,7 @@ export default function AuthPage() {
             </TabsContent>
 
             <TabsContent value="register" className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <Card className="border-none shadow-none">
+              <Card className="border-none bg-transparent shadow-none">
                 <CardContent className="p-0">
                   <Form {...registerForm}>
                     <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
@@ -546,7 +546,7 @@ export default function AuthPage() {
             </TabsContent>
 
             <TabsContent value="forgot" className="animate-in fade-in slide-in-from-right-4 duration-300">
-              <Card className="border-none shadow-none">
+              <Card className="border-none bg-transparent shadow-none">
                 <CardContent className="p-0">
                   <ForgotPasswordTab setActiveTab={setActiveTab} />
                 </CardContent>

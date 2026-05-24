@@ -134,7 +134,7 @@ export default function DashboardPage() {
               <Wallet className="text-primary w-5 h-5" />
             </div>
             <div>
-              <span className="text-3xl font-bold font-display text-foreground">GHS {user.balance || "0.00"}</span>
+              <span className="text-3xl font-bold font-display text-foreground">GHS {Number(user.balance ?? 0).toFixed(2)}</span>
               <p className="text-xs text-muted-foreground mt-1">Available to spend</p>
             </div>
           </div>
