@@ -30,7 +30,7 @@ export function OrderStatusBadge({ status = 'pending', size = 'md' }: OrderStatu
 
   if (status === 'pending') {
     return (
-      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200`}>
+      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-amber-600 text-amber-50 border border-amber-700`}>
         <Clock className={`${iconSize} animate-bounce`} />
         <span className={textSize}>Pending</span>
       </div>
@@ -39,7 +39,7 @@ export function OrderStatusBadge({ status = 'pending', size = 'md' }: OrderStatu
 
   if (status === 'processing') {
     return (
-      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-200`}>
+      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-blue-600 text-blue-50 border border-blue-700`}>
         <Loader2 className={`${iconSize} animate-spin`} />
         <span className={textSize}>Processing</span>
       </div>
@@ -48,7 +48,7 @@ export function OrderStatusBadge({ status = 'pending', size = 'md' }: OrderStatu
 
   if (status === 'completed' || status === 'delivered') {
     return (
-      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-green-50 text-green-700 border border-green-200`}>
+      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-emerald-600 text-emerald-50 border border-emerald-700`}>
         <CheckCircle2 className={`${iconSize}`} />
         <span className={textSize}>Completed</span>
       </div>
@@ -57,7 +57,7 @@ export function OrderStatusBadge({ status = 'pending', size = 'md' }: OrderStatu
 
   if (status === 'failed') {
     return (
-      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-red-50 text-red-700 border border-red-200`}>
+      <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-red-600 text-red-50 border border-red-700`}>
         <XCircle className={`${iconSize}`} />
         <span className={textSize}>Failed</span>
       </div>
@@ -65,7 +65,7 @@ export function OrderStatusBadge({ status = 'pending', size = 'md' }: OrderStatu
   }
 
   return (
-    <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-gray-50 text-gray-700 border border-gray-200`}>
+    <div className={`${padding} rounded-full font-medium flex items-center gap-1.5 bg-gray-600 text-gray-50 border border-gray-700`}>
       <span className={textSize}>{status || 'Unknown'}</span>
     </div>
   );
