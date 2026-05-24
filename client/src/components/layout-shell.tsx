@@ -12,14 +12,16 @@ import {
   X,
   MessageCircle,
   MessageSquare,
-  Users
-  ,
+  Users,
   Bell,
   Eye,
-  Clock
+  Clock,
+  Moon,
+  Sun
 } from "lucide-react";
 import { useEffect } from "react";
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
@@ -27,9 +29,17 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const { data: cart = [] } = useCart();
   const { cartItems } = useCartContext();
   const { mutate: logout } = useLogout();
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const activeTheme = mounted ? resolvedTheme : theme;
 
   // If no user (and not loading), we assume the page might redirect or show restricted view
   // But purely for layout, if no user, render children directly (e.g. auth pages)
@@ -59,15 +69,15 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row">
       {/* Mobile Header: project name only */}
-      <div className="md:hidden bg-white border-b border-border p-4 sticky top-0 z-50">
+      <div className="md:hidden bg-card border-b border-border p-4 sticky top-0 z-50">
         <h1 className="text-xl font-bold font-display text-primary">AllenDataHub</h1>
       </div>
 
       {/* Sidebar Navigation */}
       <aside className={cn(
-        "fixed md:sticky top-0 left-0 z-40 h-screen w-56 bg-white border-r border-border flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0",
+        "fixed md:sticky top-0 left-0 z-40 h-screen w-56 bg-card border-r border-border flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="p-8">
@@ -101,7 +111,7 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
           )}
         </nav>
 
-        <div className="p-4 border-t border-border bg-gray-50/50">
+        <div className="p-4 border-t border-border bg-muted/50">
           <div className="flex items-center gap-3 px-4 mb-4">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
               {(user.username || user.fullName || 'U').substring(0, 2).toUpperCase()}
@@ -123,13 +133,13 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-x-hidden min-h-screen">
-        <div className="w-full bg-white border-b border-border">
+        <div className="w-full bg-card border-b border-border">
           <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 flex items-center justify-between gap-4">
             {/* Left: Menu button (mobile only) */}
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
               aria-label="Menu"
-              className="md:hidden p-2 rounded-md hover:bg-gray-100"
+              className="md:hidden p-2 rounded-md hover:bg-muted/50"
             >
               {isMobileMenuOpen ? <X /> : <Menu />}
             </button>
@@ -145,8 +155,15 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
             {/* Top right: Cart + User menu */}
             <div className="flex items-center gap-4 ml-auto">
+              <button
+                onClick={() => setTheme(activeTheme === "dark" ? "light" : "dark")}
+                aria-label="Toggle theme"
+                className="p-2 rounded-md hover:bg-muted/50 transition-colors"
+              >
+                {activeTheme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
               <Link href="/cart">
-                <button aria-label="Cart" className="relative p-2 rounded-md hover:bg-gray-100">
+                <button aria-label="Cart" className="relative p-2 rounded-md hover:bg-muted/50">
                   <ShoppingBag className="w-6 h-6" />
                   {cartCount > 0 && (
                     <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
@@ -171,12 +188,12 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                   </button>
 
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-40 bg-white border border-border rounded-md shadow-md z-50">
+                    <div className="absolute right-0 mt-2 w-40 bg-card border border-border rounded-md shadow-md z-50">
                         <Link href="/profile">
-                          <div className="px-4 py-2 hover:bg-gray-50">Profile</div>
+                          <div className="px-4 py-2 hover:bg-muted/50">Profile</div>
                         </Link>
                         <div
-                          className="px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                          className="px-4 py-2 hover:bg-muted/50 cursor-pointer"
                           onClick={() => logout()}
                         >
                           Logout

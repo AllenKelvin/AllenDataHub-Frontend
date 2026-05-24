@@ -81,6 +81,37 @@
     font-family: 'Outfit', sans-serif;
     @apply tracking-tight font-bold;
   }
+
+  .dark .bg-white {
+    background-color: hsl(var(--card) / 1) !important;
+  }
+  .dark .bg-gray-50 {
+    background-color: hsl(var(--muted) / 1) !important;
+  }
+  .dark .bg-slate-50 {
+    background-color: hsl(var(--sidebar) / 1) !important;
+  }
+  .dark .hover\:bg-gray-50:hover {
+    background-color: hsl(var(--muted) / 1) !important;
+  }
+  .dark .hover\:bg-gray-100:hover {
+    background-color: hsl(var(--muted) / 0.95) !important;
+  }
+  .dark .text-gray-900 {
+    color: hsl(var(--foreground) / 1) !important;
+  }
+  .dark .text-gray-700 {
+    color: hsl(var(--muted-foreground) / 1) !important;
+  }
+  .dark .border-gray-300 {
+    border-color: hsl(var(--border) / 1) !important;
+  }
+  .dark .bg-white\/10 {
+    background-color: rgba(255,255,255,0.1) !important;
+  }
+  .dark .bg-white\/20 {
+    background-color: rgba(255,255,255,0.2) !important;
+  }
 }
 
 /* Custom Utilities for Depth and Polish */

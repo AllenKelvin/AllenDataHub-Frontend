@@ -1,6 +1,7 @@
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient, setGetAccessTokenFn } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/context/CartContext";
@@ -91,16 +92,18 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        <TooltipProvider>
-          <ErrorBoundary>
-            <Router />
-          </ErrorBoundary>
-          <Toaster />
-        </TooltipProvider>
-      </CartProvider>
-    </QueryClientProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <CartProvider>
+          <TooltipProvider>
+            <ErrorBoundary>
+              <Router />
+            </ErrorBoundary>
+            <Toaster />
+          </TooltipProvider>
+        </CartProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
