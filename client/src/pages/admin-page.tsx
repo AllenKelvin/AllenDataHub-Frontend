@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertProductSchema, type InsertProduct } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, ShieldAlert, CheckCircle2, PackagePlus, KeyRound, Save, Ban, Users, BadgeCheck, BadgeX, Wallet, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Loader2, ShieldAlert, CheckCircle2, PackagePlus, KeyRound, Save, Ban, Users, BadgeCheck, BadgeX, Wallet, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OrderStatusBadge } from "@/components/order-status-badge";
@@ -102,24 +102,6 @@ function AdminAgentsTab() {
     });
   };
 
-  // Recent deposits (fetched for admin view but no dialog here)
-  const [selectedAgentDeposits, setSelectedAgentDeposits] = useState<any[]>([]);
-  const [selectedAgentName, setSelectedAgentName] = useState<string | null>(null);
-
-  const openDeposits = async (agentId: string, agentName?: string) => {
-    try {
-      const { fetchWithAuth } = await import('@/lib/fetchWithAuth');
-      const res = await fetchWithAuth(`/api/admin/agents/${agentId}/deposits`);
-      if (!res.ok) throw new Error('Failed to load deposits');
-      const data = await res.json();
-      setSelectedAgentDeposits(data || []);
-      setSelectedAgentName(agentName || null);
-    } catch (e) {
-      console.error('Failed to load deposits', e);
-      toast({ title: 'Failed to load deposits', description: (e as any).message || '' , variant: 'destructive' });
-    }
-  };
-
   return (
     <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
       <div className="bg-sidebar px-5 py-4 flex items-center gap-3">
@@ -166,9 +148,6 @@ function AdminAgentsTab() {
                     <Wallet className="h-3.5 w-3.5 text-white" />
                     <span className="text-white text-sm font-black">GHS {Number(agent.balance ?? 0).toFixed(2)}</span>
                   </div>
-                  <button title="Recent deposits" onClick={() => openDeposits(agent.id, agent.username)} className="p-2 rounded-md hover:bg-gray-100">
-                    <Eye className="w-4 h-4" />
-                  </button>
                 </div>
 
                 <div className="flex gap-2">
