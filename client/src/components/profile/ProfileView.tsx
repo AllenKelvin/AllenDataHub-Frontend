@@ -7,7 +7,8 @@ import { format } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@shared/routes";
-import { useAgentGenerateApiKey } from "@/hooks/use-admin";
+import { useAgentGenerateApiKey, useRequestAgentApiAccess } from "@/hooks/use-admin";
+import { useQuery } from "@tanstack/react-query";
 
 type User = any;
 
@@ -17,9 +18,19 @@ export default function ProfileView({ user }: { user: User }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const genKey = useAgentGenerateApiKey();
+  const requestAccess = useRequestAgentApiAccess();
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const { data: apiStatus } = useQuery({
+    queryKey: ["/api/agent/api-access/status"],
+    queryFn: async () => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth("/api/agent/api-access/status");
+      if (!res.ok) throw new Error("Failed to fetch API access status");
+      return res.json() as Promise<{ status: "none" | "pending" | "active" | "revoked"; hasKey: boolean }>;
+    },
+  });
 
   const [form, setForm] = useState({ fullName: user.username || "", email: user.email || "", phone: user.phoneNumber || "", whatsapp: user.whatsapp || "", momo: user.momo || "" });
 
@@ -50,9 +61,17 @@ export default function ProfileView({ user }: { user: User }) {
   async function handleGenerateKey() {
     setGenerating(true);
     try {
-      const d = await genKey.mutateAsync();
-      setApiKey(d.apiKey || null);
-      toast({ title: 'API key generated', description: 'Copy it now; it will not be shown again.' });
+      if (apiStatus?.status === "active") {
+        const d = await genKey.mutateAsync();
+        setApiKey(d.apiKey || null);
+        toast({ title: 'API key generated', description: 'Copy it now; it will not be shown again.' });
+        return;
+      }
+
+      const result = await requestAccess.mutateAsync();
+      if (result?.status === "pending") {
+        toast({ title: 'API access requested', description: 'An admin will review the request and issue your key once approved.' });
+      }
     } catch (e: any) {
       toast({ title: 'API generation failed', description: e?.message || String(e), variant: 'destructive' });
     } finally {
@@ -139,9 +158,11 @@ export default function ProfileView({ user }: { user: User }) {
               {user.role === 'agent' && (
                 <div className="p-4 bg-slate-50 border border-border rounded-lg text-left">
                   <div className="text-xs text-muted-foreground">API Access</div>
-                  <div className="text-lg font-bold">{apiKey ? 'Key generated' : 'No API key'}</div>
+                  <div className="text-lg font-bold">
+                    {apiStatus?.status === "active" || apiKey ? 'Key generated' : apiStatus?.status === "pending" ? 'Request pending' : 'No API access'}
+                  </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <Button variant="secondary" onClick={handleGenerateKey} disabled={generating}>{generating ? 'Generating...' : (apiKey ? 'Regenerate Key' : 'Generate API Key')}</Button>
+                    <Button variant="secondary" onClick={handleGenerateKey} disabled={generating}>{generating ? 'Working...' : (apiStatus?.status === "active" || apiKey ? 'Regenerate Key' : 'Request API Access')}</Button>
                     {apiKey && (
                       <button className="px-3 py-1 bg-slate-800 text-white rounded" onClick={() => { navigator.clipboard.writeText(apiKey); toast({ title: 'Copied' }); }}>
                         Copy

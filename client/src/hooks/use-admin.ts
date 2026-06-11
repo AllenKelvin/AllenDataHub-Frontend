@@ -200,6 +200,28 @@ export function useAgentGenerateApiKey() {
   });
 }
 
+export function useRequestAgentApiAccess() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async () => {
+      const { fetchWithAuth } = await import("@/lib/fetchWithAuth");
+      const res = await fetchWithAuth("/api/agent/api-access/request", { method: "POST" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error((j as { message?: string }).message || "Failed to request API access");
+      }
+      return res.json() as Promise<{ status: "pending" | "active" | "revoked"; message: string }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agent/api-access/status"] });
+    },
+    onError: (e: Error) => {
+      toast({ title: "Request access failed", description: e.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useIssueAgentApiKey() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
