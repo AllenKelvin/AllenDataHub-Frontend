@@ -313,7 +313,7 @@ function FloatingChat() {
 
           {/* Contact Admin */}
           <a
-            href="https://wa.me/233546051806"
+            href="https://wa.me/233592786175"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg shadow-lg transition-colors whitespace-nowrap"
